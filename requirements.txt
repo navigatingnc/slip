@@ -1,0 +1,2 @@
+# SLIP - System for Locating and Identifying Points of friction
+# Core dependencies (Phase 1: scaffold only)
