@@ -1,7 +1,7 @@
 """Core data models for SLIP friction detection."""
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import List, Optional
 
 
 @dataclass
@@ -18,4 +18,22 @@ class FrictionPoint:
         return (
             f"FrictionPoint(pattern={self.pattern!r}, "
             f"score={self.score:.2f}, description={self.description!r})"
+        )
+
+
+@dataclass
+class Opportunity:
+    """A ranked business or automation opportunity derived from friction points."""
+    title: str                              # short label, e.g. "rapid quoting system"
+    friction_points: List[FrictionPoint]  # source signals
+    frequency: float = 0.0                  # 0.0–1.0: how often the pattern appears
+    severity: float = 0.0                   # 0.0–1.0: average friction score
+    automation_potential: float = 0.0       # 0.0–1.0: ease of automation
+    composite_score: float = 0.0            # weighted aggregate
+
+    def __repr__(self) -> str:
+        return (
+            f"Opportunity(title={self.title!r}, "
+            f"composite_score={self.composite_score:.2f}, "
+            f"signals={len(self.friction_points)})"
         )
