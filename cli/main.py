@@ -48,6 +48,12 @@ def main():
         action="store_true",
         help="Also run the opportunity scorer and display ranked opportunities",
     )
+    parser.add_argument(
+        "--export",
+        type=str,
+        default=None,
+        help="Export ranked opportunities to a CSV file (requires --score)",
+    )
     args = parser.parse_args()
 
     if args.text:
@@ -72,6 +78,14 @@ def main():
     if args.score:
         opportunities = score(friction_points)
         _print_opportunities(opportunities)
+        
+        if args.export:
+            from core.report import generate_report
+            from core.export import export_opportunities
+            # Re-generate full report for export structure
+            report = generate_report([{"text": text, "source": args.source}])
+            export_opportunities(report, args.export)
+            print(f"Exported opportunities to {args.export}")
 
     sys.exit(1)
 
