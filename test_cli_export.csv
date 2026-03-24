@@ -1,0 +1,3 @@
+Title,Composite Score,Severity,Frequency,Automation Potential,Signal Count
+delay reduction opportunity,0.475,0.25,0.5,0.8,1
+cost reduction opportunity,0.4,0.25,0.5,0.5,1
