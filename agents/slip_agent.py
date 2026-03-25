@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional
 
 from core.ingestion import ingest
 from core.models import FrictionPoint, Opportunity
+from core.persistence import save_report
 from core.report import SlipReport, generate_report
 from core.scorer import score
 
@@ -59,8 +60,9 @@ class SlipAgent:
     inspected or replayed without re-running the pipeline.
     """
 
-    def __init__(self, source: str = "agent") -> None:
+    def __init__(self, source: str = "agent", persist: bool = True) -> None:
         self.source = source
+        self.persist = persist
         self._history: List[SlipReport] = []
 
     # ------------------------------------------------------------------
@@ -83,6 +85,8 @@ class SlipAgent:
         ]
         report = generate_report(stamped)
         self._history.append(report)
+        if self.persist:
+            save_report(report)
         return report
 
     def suggest(self, friction_points: List[FrictionPoint]) -> List[Opportunity]:

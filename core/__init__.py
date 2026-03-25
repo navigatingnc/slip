@@ -4,6 +4,7 @@ from .detector import detect
 from .models import FrictionPoint, Opportunity
 from .scorer import score
 from .ingestion import Signal, normalise, ingest
+from .persistence import save_report, load_reports
 from .report import SlipReport, generate_report
 
 __all__ = [
@@ -16,4 +17,6 @@ __all__ = [
     "ingest",
     "SlipReport",
     "generate_report",
+    "save_report",
+    "load_reports",
 ]
