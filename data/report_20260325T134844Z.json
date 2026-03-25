@@ -1,0 +1,41 @@
+{
+  "generated_at": "2026-03-25T13:48:44.618449+00:00",
+  "signal_count": 3,
+  "friction_count": 4,
+  "top_pattern": "delay",
+  "top_opportunity": "workaround reduction opportunity",
+  "opportunities": [
+    {
+      "title": "workaround reduction opportunity",
+      "composite_score": 0.512,
+      "severity": 0.5,
+      "frequency": 0.25,
+      "automation_potential": 0.9,
+      "signal_count": 1
+    },
+    {
+      "title": "delay reduction opportunity",
+      "composite_score": 0.388,
+      "severity": 0.25,
+      "frequency": 0.25,
+      "automation_potential": 0.8,
+      "signal_count": 1
+    },
+    {
+      "title": "gap reduction opportunity",
+      "composite_score": 0.362,
+      "severity": 0.25,
+      "frequency": 0.25,
+      "automation_potential": 0.7,
+      "signal_count": 1
+    },
+    {
+      "title": "cost reduction opportunity",
+      "composite_score": 0.312,
+      "severity": 0.25,
+      "frequency": 0.25,
+      "automation_potential": 0.5,
+      "signal_count": 1
+    }
+  ]
+}
