@@ -1,4 +1,4 @@
-"""Tests for SLIP local API (Phase 8)."""
+"""Tests for SLIP local API (Phase 8 + Phase 12)."""
 import sys
 import os
 
@@ -129,6 +129,51 @@ def test_analyze_missing_body_rejected():
     assert resp.status_code == 422
 
 
+# ---------------------------------------------------------------------------
+# /reports
+# ---------------------------------------------------------------------------
+
+def test_reports_returns_200():
+    resp = client.get("/reports")
+    assert resp.status_code == 200
+
+
+def test_reports_response_keys():
+    resp = client.get("/reports")
+    data = resp.json()
+    assert "count" in data
+    assert "reports" in data
+
+
+def test_reports_count_matches_list_length():
+    resp = client.get("/reports")
+    data = resp.json()
+    assert data["count"] == len(data["reports"])
+
+
+def test_reports_after_analyze_increases_count(tmp_path, monkeypatch):
+    import core.persistence as _p
+    monkeypatch.setattr(_p, "_DEFAULT_DATA_DIR", str(tmp_path))
+    before = client.get("/reports").json()["count"]
+    client.post("/analyze", json={"signals": [
+        {"text": "It takes too long and is too expensive.", "source": "test"}
+    ]})
+    after = client.get("/reports").json()["count"]
+    assert after == before + 1
+
+
+def test_reports_each_entry_has_required_keys():
+    # Ensure at least one report exists
+    client.post("/analyze", json={"signals": [
+        {"text": "Broken and awful workaround.", "source": "test"}
+    ]})
+    data = client.get("/reports").json()
+    for report in data["reports"]:
+        assert "generated_at" in report
+        assert "signal_count" in report
+        assert "opportunities" in report
+
+
 if __name__ == "__main__":
     test_health_returns_200()
     test_health_payload()
@@ -145,4 +190,9 @@ if __name__ == "__main__":
     test_analyze_empty_signals_list_rejected()
     test_analyze_missing_text_field_rejected()
     test_analyze_missing_body_rejected()
+    test_reports_returns_200()
+    test_reports_response_keys()
+    test_reports_count_matches_list_length()
+    test_reports_after_analyze_increases_count()
+    test_reports_each_entry_has_required_keys()
     print("All API tests passed.")

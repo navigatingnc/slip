@@ -1,7 +1,8 @@
-"""Local FastAPI application for SLIP — Phase 8.
+"""Local FastAPI application for SLIP — Phase 8 + Phase 12.
 
 Exposes the full ingest → detect → score → report pipeline over HTTP via a
-single POST /analyze endpoint. Run with:
+single POST /analyze endpoint, and a GET /reports endpoint that returns all
+persisted SlipReports from the data/ directory. Run with:
 
     uvicorn api.app:app --reload
 """
@@ -10,12 +11,13 @@ from typing import Any, Dict, List, Optional
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
+from core.persistence import load_reports, save_report
 from core.report import generate_report
 
 app = FastAPI(
     title="SLIP API",
     description="System for Locating and Identifying Points of friction — local API",
-    version="0.8.0",
+    version="0.12.0",
 )
 
 
@@ -54,6 +56,11 @@ class AnalyzeResponse(BaseModel):
     opportunities: List[OpportunityOut]
 
 
+class ReportsResponse(BaseModel):
+    count: int
+    reports: List[Dict[str, Any]]
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -69,4 +76,12 @@ def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
     """Run the full SLIP pipeline on a batch of signals and return a report."""
     raw_signals: List[Dict[str, Any]] = [s.model_dump() for s in request.signals]
     report = generate_report(raw_signals)
+    save_report(report)
     return AnalyzeResponse(**report.to_dict())
+
+
+@app.get("/reports", response_model=ReportsResponse, tags=["reports"])
+def get_reports() -> ReportsResponse:
+    """Return all persisted SlipReports from the data/ directory, oldest first."""
+    reports = load_reports()
+    return ReportsResponse(count=len(reports), reports=reports)
