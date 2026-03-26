@@ -17,7 +17,7 @@ from core.report import generate_report
 app = FastAPI(
     title="SLIP API",
     description="System for Locating and Identifying Points of friction — local API",
-    version="0.12.0",
+    version="0.13.0",
 )
 
 
@@ -44,6 +44,8 @@ class OpportunityOut(BaseModel):
     severity: float
     frequency: float
     automation_potential: float
+    willingness_to_pay: float
+    market_size: float
     signal_count: int
 
 

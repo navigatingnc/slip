@@ -1,0 +1,29 @@
+{
+  "generated_at": "2026-03-26T22:57:00.979195+00:00",
+  "signal_count": 1,
+  "friction_count": 2,
+  "top_pattern": "complaint",
+  "top_opportunity": "workaround reduction opportunity",
+  "opportunities": [
+    {
+      "title": "workaround reduction opportunity",
+      "composite_score": 0.63,
+      "severity": 0.25,
+      "frequency": 0.5,
+      "automation_potential": 0.9,
+      "willingness_to_pay": 0.8,
+      "market_size": 0.7,
+      "signal_count": 1
+    },
+    {
+      "title": "complaint reduction opportunity",
+      "composite_score": 0.44,
+      "severity": 0.5,
+      "frequency": 0.5,
+      "automation_potential": 0.4,
+      "willingness_to_pay": 0.3,
+      "market_size": 0.5,
+      "signal_count": 1
+    }
+  ]
+}
