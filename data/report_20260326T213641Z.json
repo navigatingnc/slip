@@ -1,0 +1,25 @@
+{
+  "generated_at": "2026-03-26T21:36:41.638514+00:00",
+  "signal_count": 1,
+  "friction_count": 2,
+  "top_pattern": "complaint",
+  "top_opportunity": "workaround reduction opportunity",
+  "opportunities": [
+    {
+      "title": "workaround reduction opportunity",
+      "composite_score": 0.5,
+      "severity": 0.25,
+      "frequency": 0.5,
+      "automation_potential": 0.9,
+      "signal_count": 1
+    },
+    {
+      "title": "complaint reduction opportunity",
+      "composite_score": 0.475,
+      "severity": 0.5,
+      "frequency": 0.5,
+      "automation_potential": 0.4,
+      "signal_count": 1
+    }
+  ]
+}
