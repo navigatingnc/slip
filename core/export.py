@@ -20,6 +20,8 @@ def export_opportunities(report: SlipReport, filepath: str) -> None:
             "Severity",
             "Frequency",
             "Automation Potential",
+            "Willingness to Pay",
+            "Market Size",
             "Signal Count"
         ])
         for opp in report.opportunities:
@@ -29,5 +31,7 @@ def export_opportunities(report: SlipReport, filepath: str) -> None:
                 opp.severity,
                 opp.frequency,
                 opp.automation_potential,
+                opp.willingness_to_pay,
+                opp.market_size,
                 len(opp.friction_points)
             ])

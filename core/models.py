@@ -23,13 +23,19 @@ class FrictionPoint:
 
 @dataclass
 class Opportunity:
-    """A ranked business or automation opportunity derived from friction points."""
+    """A ranked business or automation opportunity derived from friction points.
+
+    Scored across all five dimensions defined in the README:
+    Frequency, Severity, Willingness to Pay, Market Size, Automation Potential.
+    """
     title: str                              # short label, e.g. "rapid quoting system"
     friction_points: List[FrictionPoint]  # source signals
     frequency: float = 0.0                  # 0.0–1.0: how often the pattern appears
     severity: float = 0.0                   # 0.0–1.0: average friction score
     automation_potential: float = 0.0       # 0.0–1.0: ease of automation
-    composite_score: float = 0.0            # weighted aggregate
+    willingness_to_pay: float = 0.0         # 0.0–1.0: likelihood users pay to fix it
+    market_size: float = 0.0               # 0.0–1.0: estimated breadth of the problem
+    composite_score: float = 0.0            # weighted aggregate across all five dims
 
     def __repr__(self) -> str:
         return (

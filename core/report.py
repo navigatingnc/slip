@@ -42,6 +42,8 @@ class SlipReport:
                     "severity": opp.severity,
                     "frequency": opp.frequency,
                     "automation_potential": opp.automation_potential,
+                    "willingness_to_pay": opp.willingness_to_pay,
+                    "market_size": opp.market_size,
                     "signal_count": len(opp.friction_points),
                 }
                 for opp in self.opportunities

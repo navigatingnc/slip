@@ -14,6 +14,8 @@ def test_export_opportunities(tmp_path):
         frequency=1.0,
         severity=0.8,
         automation_potential=0.8,
+        willingness_to_pay=0.7,
+        market_size=0.8,
         composite_score=0.87
     )
     report = SlipReport(
@@ -35,11 +37,11 @@ def test_export_opportunities(tmp_path):
         
         # Check header
         assert rows[0] == [
-            "Title", "Composite Score", "Severity", "Frequency", 
-            "Automation Potential", "Signal Count"
+            "Title", "Composite Score", "Severity", "Frequency",
+            "Automation Potential", "Willingness to Pay", "Market Size", "Signal Count"
         ]
         
         # Check data
         assert rows[1] == [
-            "delay reduction opportunity", "0.87", "0.8", "1.0", "0.8", "1"
+            "delay reduction opportunity", "0.87", "0.8", "1.0", "0.8", "0.7", "0.8", "1"
         ]
