@@ -38,6 +38,13 @@ class AnalyzeRequest(BaseModel):
     )
 
 
+class BusinessConceptOut(BaseModel):
+    opportunity_title: str
+    concept: str
+    model: str
+    rationale: str
+
+
 class OpportunityOut(BaseModel):
     title: str
     composite_score: float
@@ -47,6 +54,7 @@ class OpportunityOut(BaseModel):
     willingness_to_pay: float
     market_size: float
     signal_count: int
+    business_concept: Optional[BusinessConceptOut] = None
 
 
 class AnalyzeResponse(BaseModel):

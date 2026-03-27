@@ -1,0 +1,73 @@
+{
+  "generated_at": "2026-03-27T00:24:27.969823+00:00",
+  "signal_count": 3,
+  "friction_count": 4,
+  "top_pattern": "delay",
+  "top_opportunity": "workaround reduction opportunity",
+  "opportunities": [
+    {
+      "title": "workaround reduction opportunity",
+      "composite_score": 0.63,
+      "severity": 0.5,
+      "frequency": 0.25,
+      "automation_potential": 0.9,
+      "willingness_to_pay": 0.8,
+      "market_size": 0.7,
+      "signal_count": 1,
+      "business_concept": {
+        "opportunity_title": "workaround reduction opportunity",
+        "concept": "workflow automation tool",
+        "model": "SaaS / API product",
+        "rationale": "Manual workarounds expose a missing feature or integration. Packaging the workaround as a polished tool captures the users already doing the work manually and willing to pay to stop."
+      }
+    },
+    {
+      "title": "gap reduction opportunity",
+      "composite_score": 0.6,
+      "severity": 0.25,
+      "frequency": 0.25,
+      "automation_potential": 0.7,
+      "willingness_to_pay": 0.9,
+      "market_size": 0.9,
+      "signal_count": 1,
+      "business_concept": {
+        "opportunity_title": "gap reduction opportunity",
+        "concept": "niche marketplace or directory",
+        "model": "marketplace / lead-gen",
+        "rationale": "Accessibility gaps mean buyers cannot find suitable providers. A curated directory or marketplace that surfaces hard-to-find options earns trust and transaction fees."
+      }
+    },
+    {
+      "title": "delay reduction opportunity",
+      "composite_score": 0.56,
+      "severity": 0.25,
+      "frequency": 0.25,
+      "automation_potential": 0.8,
+      "willingness_to_pay": 0.7,
+      "market_size": 0.8,
+      "signal_count": 1,
+      "business_concept": {
+        "opportunity_title": "delay reduction opportunity",
+        "concept": "on-demand speed layer",
+        "model": "SaaS / marketplace",
+        "rationale": "Delays signal unmet demand for faster turnaround. A platform that connects buyers with pre-vetted, fast-response providers can charge a premium for guaranteed speed."
+      }
+    },
+    {
+      "title": "cost reduction opportunity",
+      "composite_score": 0.48,
+      "severity": 0.25,
+      "frequency": 0.25,
+      "automation_potential": 0.5,
+      "willingness_to_pay": 0.6,
+      "market_size": 0.8,
+      "signal_count": 1,
+      "business_concept": {
+        "opportunity_title": "cost reduction opportunity",
+        "concept": "transparent pricing platform",
+        "model": "comparison / affiliate",
+        "rationale": "Pricing frustration drives churn and distrust. A comparison tool or price-transparency layer builds loyalty and earns referral revenue from lower-cost alternatives."
+      }
+    }
+  ]
+}
