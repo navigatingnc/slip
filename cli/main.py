@@ -16,14 +16,22 @@ def _print_friction(results):
 
 
 def _print_opportunities(opportunities):
+    from core.ideation import generate_concepts
+    concepts = {bc.opportunity_title: bc for bc in generate_concepts(opportunities)}
     print(f"Ranked {len(opportunities)} opportunity/opportunities:\n")
     for i, opp in enumerate(opportunities, 1):
+        bc = concepts.get(opp.title)
         print(f"  #{i} {opp.title}")
-        print(f"     Composite Score    : {opp.composite_score:.3f}")
-        print(f"     Severity           : {opp.severity:.3f}")
-        print(f"     Frequency          : {opp.frequency:.3f}")
+        print(f"     Composite Score     : {opp.composite_score:.3f}")
+        print(f"     Severity            : {opp.severity:.3f}")
+        print(f"     Frequency           : {opp.frequency:.3f}")
         print(f"     Automation Potential: {opp.automation_potential:.3f}")
-        print(f"     Signals            : {len(opp.friction_points)}")
+        print(f"     Willingness to Pay  : {opp.willingness_to_pay:.3f}")
+        print(f"     Market Size         : {opp.market_size:.3f}")
+        print(f"     Signals             : {len(opp.friction_points)}")
+        if bc:
+            print(f"     Business Concept    : {bc.concept} ({bc.model})")
+            print(f"     Rationale           : {bc.rationale[:100]}...")
         print()
 
 

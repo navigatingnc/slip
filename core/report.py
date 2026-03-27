@@ -9,6 +9,7 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from .ideation import generate_concepts
 from .ingestion import ingest
 from .models import Opportunity
 from .scorer import score
@@ -29,6 +30,8 @@ class SlipReport:
 
     def to_dict(self) -> Dict[str, Any]:
         """Return a JSON-serialisable representation of the report."""
+        concepts = generate_concepts(self.opportunities)
+        concept_map = {bc.opportunity_title: bc.to_dict() for bc in concepts}
         return {
             "generated_at": self.generated_at,
             "signal_count": self.signal_count,
@@ -45,6 +48,7 @@ class SlipReport:
                     "willingness_to_pay": opp.willingness_to_pay,
                     "market_size": opp.market_size,
                     "signal_count": len(opp.friction_points),
+                    "business_concept": concept_map.get(opp.title),
                 }
                 for opp in self.opportunities
             ],
