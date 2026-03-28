@@ -174,6 +174,50 @@ def test_reports_each_entry_has_required_keys():
         assert "opportunities" in report
 
 
+# ---------------------------------------------------------------------------
+# /reports/{report_id}
+# ---------------------------------------------------------------------------
+
+def test_report_by_id_returns_200(tmp_path, monkeypatch):
+    import core.persistence as _p
+    monkeypatch.setattr(_p, "_DEFAULT_DATA_DIR", str(tmp_path))
+    # Create a report and extract its ID from the filename
+    resp = client.post("/analyze", json={"signals": [
+        {"text": "It takes too long to get a quote.", "source": "test"}
+    ]})
+    assert resp.status_code == 200
+    # The saved filename stem is the report_id
+    files = list(tmp_path.glob("report_*.json"))
+    assert len(files) == 1
+    report_id = files[0].stem.replace("report_", "")
+    resp2 = client.get(f"/reports/{report_id}")
+    assert resp2.status_code == 200
+
+
+def test_report_by_id_returns_correct_content(tmp_path, monkeypatch):
+    import core.persistence as _p
+    monkeypatch.setattr(_p, "_DEFAULT_DATA_DIR", str(tmp_path))
+    client.post("/analyze", json={"signals": [
+        {"text": "Broken workaround and too expensive.", "source": "test"}
+    ]})
+    files = list(tmp_path.glob("report_*.json"))
+    report_id = files[0].stem.replace("report_", "")
+    data = client.get(f"/reports/{report_id}").json()
+    assert "generated_at" in data
+    assert "signal_count" in data
+    assert "opportunities" in data
+
+
+def test_report_by_id_returns_404_for_missing():
+    resp = client.get("/reports/99991231T999999Z")
+    assert resp.status_code == 404
+
+
+def test_report_by_id_404_detail_message():
+    resp = client.get("/reports/00000000T000000Z")
+    assert "not found" in resp.json()["detail"].lower()
+
+
 if __name__ == "__main__":
     test_health_returns_200()
     test_health_payload()

@@ -11,13 +11,13 @@ from typing import Any, Dict, List, Optional
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
-from core.persistence import load_reports, save_report
+from core.persistence import load_report_by_id, load_reports, save_report
 from core.report import generate_report
 
 app = FastAPI(
     title="SLIP API",
     description="System for Locating and Identifying Points of friction — local API",
-    version="0.13.0",
+    version="0.15.0",
 )
 
 
@@ -95,3 +95,18 @@ def get_reports() -> ReportsResponse:
     """Return all persisted SlipReports from the data/ directory, oldest first."""
     reports = load_reports()
     return ReportsResponse(count=len(reports), reports=reports)
+
+
+@app.get("/reports/{report_id}", tags=["reports"])
+def get_report_by_id(report_id: str) -> Dict[str, Any]:
+    """Return a single persisted SlipReport by its ID.
+
+    The report ID is the timestamp stem of the filename, e.g.
+    ``20260327T002427Z`` for ``data/report_20260327T002427Z.json``.
+    Returns 404 if no matching report is found.
+    """
+    from fastapi import HTTPException
+    report = load_report_by_id(report_id)
+    if report is None:
+        raise HTTPException(status_code=404, detail=f"Report '{report_id}' not found")
+    return report

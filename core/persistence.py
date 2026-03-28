@@ -40,6 +40,29 @@ def save_report(report: SlipReport, data_dir: str | None = None) -> str:
     return filepath
 
 
+def load_report_by_id(
+    report_id: str, data_dir: str | None = None
+) -> Dict[str, Any] | None:
+    """Load a single persisted SlipReport by its ID.
+
+    The report ID is the timestamp stem of the filename, e.g.
+    ``"20260327T002427Z"`` for ``data/report_20260327T002427Z.json``.
+
+    Args:
+        report_id: Timestamp stem identifying the report file.
+        data_dir:  Source directory (defaults to ``data/`` at repo root).
+
+    Returns:
+        The report dict if found, or ``None`` if no matching file exists.
+    """
+    directory = _data_dir(data_dir)
+    filepath = os.path.join(directory, f"report_{report_id}.json")
+    if not os.path.isfile(filepath):
+        return None
+    with open(filepath, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
 def load_reports(data_dir: str | None = None) -> List[Dict[str, Any]]:
     """Load all persisted SlipReport JSON files from *data_dir*.
 
