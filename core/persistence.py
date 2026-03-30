@@ -1,4 +1,4 @@
-"""JSON persistence layer for SLIP — Phase 11.
+"""JSON persistence layer for SLIP — Phase 11 + Phase 17.
 
 Saves and loads SlipReport objects to/from the local `data/` directory,
 fulfilling the README's local-first, privacy-first design principle.
@@ -61,6 +61,27 @@ def load_report_by_id(
         return None
     with open(filepath, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def delete_report(report_id: str, data_dir: str | None = None) -> bool:
+    """Delete a single persisted SlipReport by its ID.
+
+    The report ID is the timestamp stem of the filename, e.g.
+    ``"20260327T002427Z"`` for ``data/report_20260327T002427Z.json``.
+
+    Args:
+        report_id: Timestamp stem identifying the report file.
+        data_dir:  Source directory (defaults to ``data/`` at repo root).
+
+    Returns:
+        ``True`` if the file was found and deleted, ``False`` if not found.
+    """
+    directory = _data_dir(data_dir)
+    filepath = os.path.join(directory, f"report_{report_id}.json")
+    if not os.path.isfile(filepath):
+        return False
+    os.remove(filepath)
+    return True
 
 
 def load_reports(data_dir: str | None = None) -> List[Dict[str, Any]]:

@@ -1,4 +1,4 @@
-"""Local FastAPI application for SLIP — Phase 8 + Phase 12.
+"""Local FastAPI application for SLIP — Phase 8 + Phase 12 + Phase 17.
 
 Exposes the full ingest → detect → score → report pipeline over HTTP via a
 single POST /analyze endpoint, and a GET /reports endpoint that returns all
@@ -11,13 +11,13 @@ from typing import Any, Dict, List, Optional
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
-from core.persistence import load_report_by_id, load_reports, save_report
+from core.persistence import delete_report, load_report_by_id, load_reports, save_report
 from core.report import generate_report
 
 app = FastAPI(
     title="SLIP API",
     description="System for Locating and Identifying Points of friction — local API",
-    version="0.15.0",
+    version="0.17.0",
 )
 
 
@@ -110,3 +110,17 @@ def get_report_by_id(report_id: str) -> Dict[str, Any]:
     if report is None:
         raise HTTPException(status_code=404, detail=f"Report '{report_id}' not found")
     return report
+
+
+@app.delete("/reports/{report_id}", status_code=204, tags=["reports"])
+def delete_report_by_id(report_id: str) -> None:
+    """Delete a single persisted SlipReport by its ID.
+
+    The report ID is the timestamp stem of the filename, e.g.
+    ``20260327T002427Z`` for ``data/report_20260327T002427Z.json``.
+    Returns 204 No Content on success, 404 if no matching report is found.
+    """
+    from fastapi import HTTPException
+    deleted = delete_report(report_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Report '{report_id}' not found")

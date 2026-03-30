@@ -1,8 +1,8 @@
-"""Tests for the persistence module — Phase 11."""
+"""Tests for the persistence module — Phase 11 + Phase 17."""
 import os
 from .models import FrictionPoint, Opportunity
 from .report import SlipReport
-from .persistence import save_report, load_reports
+from .persistence import delete_report, load_report_by_id, load_reports, save_report
 
 
 def _make_report(top: str = "delay") -> SlipReport:
@@ -61,3 +61,33 @@ def test_load_reports_returns_sorted(tmp_path):
 def test_load_reports_empty_dir(tmp_path):
     loaded = load_reports(data_dir=str(tmp_path))
     assert loaded == []
+
+
+# ---------------------------------------------------------------------------
+# Phase 17: delete_report tests
+# ---------------------------------------------------------------------------
+
+def test_delete_report_removes_file(tmp_path):
+    """delete_report must remove the JSON file and return True."""
+    report = _make_report()
+    filepath = save_report(report, data_dir=str(tmp_path))
+    report_id = os.path.basename(filepath).replace("report_", "").replace(".json", "")
+    result = delete_report(report_id, data_dir=str(tmp_path))
+    assert result is True
+    assert not os.path.isfile(filepath)
+
+
+def test_delete_report_returns_false_for_missing(tmp_path):
+    """delete_report must return False when the report ID does not exist."""
+    result = delete_report("99991231T999999Z", data_dir=str(tmp_path))
+    assert result is False
+
+
+def test_delete_report_not_in_load_reports_after_deletion(tmp_path):
+    """Deleted report must no longer appear in load_reports."""
+    report = _make_report("gap")
+    filepath = save_report(report, data_dir=str(tmp_path))
+    report_id = os.path.basename(filepath).replace("report_", "").replace(".json", "")
+    delete_report(report_id, data_dir=str(tmp_path))
+    loaded = load_reports(data_dir=str(tmp_path))
+    assert all(r.get("top_pattern") != "gap" for r in loaded)
