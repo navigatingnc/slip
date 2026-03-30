@@ -1,13 +1,15 @@
-"""Business concept generator for SLIP — Phase 14.
+"""Business concept generator for SLIP — Phase 14 + Phase 16.
 
 Maps each Opportunity to a human-readable BusinessConcept, completing the
 README pipeline:
-
     Signal → Pattern → Friction → Score → Opportunity → Business Concept
 
-Concepts are generated from pattern-keyed templates — no LLM calls required,
-keeping the system fully local-first.
+Phase 16 adds optional LLM enrichment: when the SLIP_OPENAI_API_KEY
+environment variable is set, each concept's rationale is replaced with a
+concise LLM-generated description.  When the variable is absent the system
+falls back to the static template rationale, keeping it fully local-first.
 """
+import os
 from dataclasses import dataclass
 from typing import List
 
@@ -106,6 +108,45 @@ class BusinessConcept:
         )
 
 
+def enrich_concept(concept: "BusinessConcept") -> None:
+    """Optionally replace concept.rationale with an LLM-generated description.
+
+    Reads the SLIP_OPENAI_API_KEY environment variable.  When present, calls
+    the OpenAI-compatible chat completion API to produce a concise, tailored
+    rationale for the business concept.  When absent, the function is a no-op
+    and the static template rationale is preserved.
+
+    Args:
+        concept: BusinessConcept to enrich in-place.
+    """
+    api_key = os.environ.get("SLIP_OPENAI_API_KEY")
+    if not api_key:
+        return  # local-first fallback: keep static rationale
+
+    try:
+        from openai import OpenAI  # soft dependency
+
+        client = OpenAI(api_key=api_key)
+        prompt = (
+            f"You are a startup advisor. In 2-3 sentences explain why the "
+            f"business concept '{concept.concept}' (model: {concept.model}) "
+            f"is a strong solution for the friction pattern described as: "
+            f"'{concept.opportunity_title}'. Be specific and actionable."
+        )
+        response = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=120,
+            temperature=0.7,
+        )
+        llm_rationale = response.choices[0].message.content.strip()
+        if llm_rationale:
+            concept.rationale = llm_rationale
+    except Exception:
+        # Any failure (network, quota, missing package) silently falls back
+        pass
+
+
 def generate_concepts(opportunities: List[Opportunity]) -> List[BusinessConcept]:
     """Map each Opportunity to a BusinessConcept.
 
@@ -114,17 +155,19 @@ def generate_concepts(opportunities: List[Opportunity]) -> List[BusinessConcept]
 
     Returns:
         List of BusinessConcept objects in the same order as the input.
+        Each concept's rationale is enriched via LLM when SLIP_OPENAI_API_KEY
+        is set, otherwise the static template rationale is used.
     """
     concepts: List[BusinessConcept] = []
     for opp in opportunities:
         pattern = opp.title.split()[0]  # e.g. "delay" from "delay reduction opportunity"
         template = _CONCEPTS.get(pattern, _DEFAULT_CONCEPT)
-        concepts.append(
-            BusinessConcept(
-                opportunity_title=opp.title,
-                concept=template["concept"],
-                model=template["model"],
-                rationale=template["rationale"],
-            )
+        bc = BusinessConcept(
+            opportunity_title=opp.title,
+            concept=template["concept"],
+            model=template["model"],
+            rationale=template["rationale"],
         )
+        enrich_concept(bc)
+        concepts.append(bc)
     return concepts
