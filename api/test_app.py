@@ -218,6 +218,51 @@ def test_report_by_id_404_detail_message():
     assert "not found" in resp.json()["detail"].lower()
 
 
+# ---------------------------------------------------------------------------
+# DELETE /reports/{report_id}
+# ---------------------------------------------------------------------------
+
+def test_delete_report_returns_204(tmp_path, monkeypatch):
+    """DELETE /reports/{id} must return 204 No Content on success."""
+    import core.persistence as _p
+    monkeypatch.setattr(_p, "_DEFAULT_DATA_DIR", str(tmp_path))
+    client.post("/analyze", json={"signals": [
+        {"text": "It takes too long and nobody replies.", "source": "test"}
+    ]})
+    files = list(tmp_path.glob("report_*.json"))
+    report_id = files[0].stem.replace("report_", "")
+    resp = client.delete(f"/reports/{report_id}")
+    assert resp.status_code == 204
+
+
+def test_delete_report_removes_from_list(tmp_path, monkeypatch):
+    """After DELETE the report must no longer appear in GET /reports."""
+    import core.persistence as _p
+    monkeypatch.setattr(_p, "_DEFAULT_DATA_DIR", str(tmp_path))
+    client.post("/analyze", json={"signals": [
+        {"text": "Workaround is slow and overpriced.", "source": "test"}
+    ]})
+    files = list(tmp_path.glob("report_*.json"))
+    report_id = files[0].stem.replace("report_", "")
+    client.delete(f"/reports/{report_id}")
+    ids_in_list = [
+        r.get("generated_at") for r in client.get("/reports").json()["reports"]
+    ]
+    assert all(report_id not in (i or "") for i in ids_in_list)
+
+
+def test_delete_report_returns_404_for_missing():
+    """DELETE /reports/{id} must return 404 when the report does not exist."""
+    resp = client.delete("/reports/99991231T999999Z")
+    assert resp.status_code == 404
+
+
+def test_delete_report_404_detail_message():
+    """404 response from DELETE must include 'not found' in detail."""
+    resp = client.delete("/reports/00000000T000000Z")
+    assert "not found" in resp.json()["detail"].lower()
+
+
 if __name__ == "__main__":
     test_health_returns_200()
     test_health_payload()
