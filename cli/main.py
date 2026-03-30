@@ -1,4 +1,9 @@
-"""SLIP CLI - Entry point for the Slip friction detection system."""
+"""SLIP CLI — Entry point for the Slip friction detection system.
+
+Phase 3: basic detect output.
+Phase 5: --score flag for ranked opportunities.
+Phase 18: --save flag to persist a full SlipReport to data/; fix exit code.
+"""
 import argparse
 import sys
 from core import detect, score
@@ -62,6 +67,11 @@ def main():
         default=None,
         help="Export ranked opportunities to a CSV file (requires --score)",
     )
+    parser.add_argument(
+        "--save",
+        action="store_true",
+        help="Persist the full SlipReport to data/ after analysis",
+    )
     args = parser.parse_args()
 
     if args.text:
@@ -70,9 +80,8 @@ def main():
         text = sys.stdin.read().strip()
     else:
         print("SLIP - System for Locating and Identifying Points of friction")
-        print("Phase 5: CLI with opportunity scoring active.")
-        print("Usage: python -m cli.main --text 'your text here' [--score]")
-        print("       echo 'your text' | python -m cli.main [--score]")
+        print("Usage: python -m cli.main --text 'your text here' [--score] [--save]")
+        print("       echo 'your text' | python -m cli.main [--score] [--save]")
         return
 
     friction_points = detect(text, source=args.source)
@@ -88,14 +97,20 @@ def main():
         _print_opportunities(opportunities)
         
         if args.export:
-            from core.report import generate_report
             from core.export import export_opportunities
-            # Re-generate full report for export structure
+            from core.report import generate_report
             report = generate_report([{"text": text, "source": args.source}])
             export_opportunities(report, args.export)
             print(f"Exported opportunities to {args.export}")
 
-    sys.exit(1)
+    if args.save:
+        from core.persistence import save_report
+        from core.report import generate_report
+        report = generate_report([{"text": text, "source": args.source}])
+        filepath = save_report(report)
+        print(f"Report saved to {filepath}")
+
+    sys.exit(0)
 
 
 if __name__ == "__main__":
