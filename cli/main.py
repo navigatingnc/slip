@@ -3,6 +3,7 @@
 Phase 3: basic detect output.
 Phase 5: --score flag for ranked opportunities.
 Phase 18: --save flag to persist a full SlipReport to data/; fix exit code.
+Phase 19: --list flag to display a summary of all persisted SlipReports.
 """
 import argparse
 import sys
@@ -40,6 +41,20 @@ def _print_opportunities(opportunities):
         print()
 
 
+def _print_report_list(reports):
+    """Print a formatted summary table of persisted SlipReports."""
+    if not reports:
+        print("No saved reports found.")
+        return
+    print(f"{'ID/Timestamp':<22}  {'Signals':>7}  Top Opportunity")
+    print("-" * 70)
+    for r in reports:
+        report_id = r.get("generated_at", "unknown")[:19].replace("T", " ")
+        signal_count = r.get("signal_count", 0)
+        top_opp = r.get("top_opportunity", "\u2014")
+        print(f"  {report_id:<20}  {signal_count:>7}  {top_opp}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="SLIP - System for Locating and Identifying Points of friction"
@@ -72,7 +87,19 @@ def main():
         action="store_true",
         help="Persist the full SlipReport to data/ after analysis",
     )
+    parser.add_argument(
+        "--list",
+        action="store_true",
+        help="List all persisted SlipReports from data/ and exit",
+    )
     args = parser.parse_args()
+
+    # --list bypasses analysis entirely
+    if args.list:
+        from core.persistence import load_reports
+        reports = load_reports()
+        _print_report_list(reports)
+        sys.exit(0)
 
     if args.text:
         text = args.text
@@ -82,6 +109,7 @@ def main():
         print("SLIP - System for Locating and Identifying Points of friction")
         print("Usage: python -m cli.main --text 'your text here' [--score] [--save]")
         print("       echo 'your text' | python -m cli.main [--score] [--save]")
+        print("       python -m cli.main --list")
         return
 
     friction_points = detect(text, source=args.source)
