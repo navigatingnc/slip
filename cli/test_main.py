@@ -1,4 +1,4 @@
-"""Tests for SLIP CLI integration (Phase 3 + Phase 5 + Phase 18)."""
+"""Tests for SLIP CLI integration (Phase 3 + Phase 5 + Phase 18 + Phase 19)."""
 import sys
 import os
 
@@ -103,6 +103,61 @@ def test_cli_no_save_flag_writes_no_file(tmp_path):
 def test_cli_exit_code_zero_on_friction():
     """CLI must exit 0 even when friction is detected (phase 18 bug fix)."""
     with patch("sys.argv", ["cli.main", "--text", "This is broken and awful."]):
+        try:
+            main()
+            exited_with = 0
+        except SystemExit as e:
+            exited_with = e.code
+    assert exited_with == 0
+
+
+# ---------------------------------------------------------------------------
+# Phase 19: --list flag tests
+# ---------------------------------------------------------------------------
+
+def test_cli_list_flag_prints_reports(tmp_path, capsys):
+    """--list must print a summary row for each saved report."""
+    import json
+    import core.persistence as _p
+    fixtures = [
+        ("2026-03-25T13:48:44.000000+00:00", "workaround reduction opportunity"),
+        ("2026-03-26T21:36:41.000000+00:00", "complaint reduction opportunity"),
+    ]
+    for ts, top in fixtures:
+        stem = ts[:19].replace("-", "").replace(":", "").replace("T", "T")
+        fname = f"report_{stem}Z.json"
+        (tmp_path / fname).write_text(
+            json.dumps({"generated_at": ts, "signal_count": 2, "top_opportunity": top})
+        )
+    with patch("sys.argv", ["cli.main", "--list"]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+        except SystemExit as e:
+            assert e.code == 0
+    captured = capsys.readouterr()
+    assert "workaround reduction opportunity" in captured.out
+    assert "complaint reduction opportunity" in captured.out
+
+
+def test_cli_list_flag_empty_dir(tmp_path, capsys):
+    """--list must handle an empty data directory gracefully and exit 0."""
+    import core.persistence as _p
+    with patch("sys.argv", ["cli.main", "--list"]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+        except SystemExit as e:
+            assert e.code == 0
+    captured = capsys.readouterr()
+    assert "No saved reports found." in captured.out
+
+
+def test_cli_list_flag_exit_code_zero(tmp_path):
+    """--list must exit with code 0 regardless of report count."""
+    import core.persistence as _p
+    with patch("sys.argv", ["cli.main", "--list"]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
         try:
             main()
             exited_with = 0
