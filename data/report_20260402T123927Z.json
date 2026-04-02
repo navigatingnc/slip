@@ -1,0 +1,41 @@
+{
+  "generated_at": "2026-04-02T12:39:27.987100+00:00",
+  "signal_count": 1,
+  "friction_count": 2,
+  "top_pattern": "complaint",
+  "top_opportunity": "workaround reduction opportunity",
+  "opportunities": [
+    {
+      "title": "workaround reduction opportunity",
+      "composite_score": 0.63,
+      "severity": 0.25,
+      "frequency": 0.5,
+      "automation_potential": 0.9,
+      "willingness_to_pay": 0.8,
+      "market_size": 0.7,
+      "signal_count": 1,
+      "business_concept": {
+        "opportunity_title": "workaround reduction opportunity",
+        "concept": "workflow automation tool",
+        "model": "SaaS / API product",
+        "rationale": "Manual workarounds expose a missing feature or integration. Packaging the workaround as a polished tool captures the users already doing the work manually and willing to pay to stop."
+      }
+    },
+    {
+      "title": "complaint reduction opportunity",
+      "composite_score": 0.44,
+      "severity": 0.5,
+      "frequency": 0.5,
+      "automation_potential": 0.4,
+      "willingness_to_pay": 0.3,
+      "market_size": 0.5,
+      "signal_count": 1,
+      "business_concept": {
+        "opportunity_title": "complaint reduction opportunity",
+        "concept": "quality assurance service",
+        "model": "subscription / consulting",
+        "rationale": "Repeated complaints indicate a quality or reliability gap. A vetting, review aggregation, or managed-service layer commands a premium from buyers who want guaranteed outcomes."
+      }
+    }
+  ]
+}
