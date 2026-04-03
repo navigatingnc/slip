@@ -1,4 +1,4 @@
-"""Tests for SLIP local API (Phase 8 + Phase 12)."""
+"""Tests for SLIP local API (Phase 8 + Phase 12 + Phase 21)."""
 import sys
 import os
 
@@ -261,6 +261,43 @@ def test_delete_report_404_detail_message():
     """404 response from DELETE must include 'not found' in detail."""
     resp = client.delete("/reports/00000000T000000Z")
     assert "not found" in resp.json()["detail"].lower()
+
+
+# ---------------------------------------------------------------------------
+# DELETE /reports  (phase 21 — bulk clear)
+# ---------------------------------------------------------------------------
+
+def test_delete_all_reports_returns_200(tmp_path, monkeypatch):
+    """DELETE /reports must return 200 with a 'deleted' count."""
+    import core.persistence as _p
+    monkeypatch.setattr(_p, "_DEFAULT_DATA_DIR", str(tmp_path))
+    # Seed two reports
+    client.post("/analyze", json={"signals": [{"text": "It takes too long.", "source": "test"}]})
+    import time; time.sleep(1)
+    client.post("/analyze", json={"signals": [{"text": "Broken workaround.", "source": "test"}]})
+    resp = client.delete("/reports")
+    assert resp.status_code == 200
+    assert resp.json()["deleted"] == 2
+
+
+def test_delete_all_reports_empties_list(tmp_path, monkeypatch):
+    """After DELETE /reports, GET /reports must return an empty list."""
+    import core.persistence as _p
+    monkeypatch.setattr(_p, "_DEFAULT_DATA_DIR", str(tmp_path))
+    client.post("/analyze", json={"signals": [{"text": "Too expensive workaround.", "source": "test"}]})
+    client.delete("/reports")
+    data = client.get("/reports").json()
+    assert data["count"] == 0
+    assert data["reports"] == []
+
+
+def test_delete_all_reports_empty_dir_returns_zero(tmp_path, monkeypatch):
+    """DELETE /reports on an empty data dir must return {'deleted': 0}."""
+    import core.persistence as _p
+    monkeypatch.setattr(_p, "_DEFAULT_DATA_DIR", str(tmp_path))
+    resp = client.delete("/reports")
+    assert resp.status_code == 200
+    assert resp.json()["deleted"] == 0
 
 
 if __name__ == "__main__":
