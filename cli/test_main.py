@@ -166,6 +166,51 @@ def test_cli_list_flag_exit_code_zero(tmp_path):
     assert exited_with == 0
 
 
+# ---------------------------------------------------------------------------
+# Phase 20: --clear flag tests
+# ---------------------------------------------------------------------------
+
+def test_cli_clear_flag_deletes_reports(tmp_path, capsys):
+    """--clear must delete all saved reports and print a confirmation."""
+    import json
+    import core.persistence as _p
+    
+    # Create mock reports
+    for i in range(3):
+        fname = f"report_20260327T10000{i}Z.json"
+        (tmp_path / fname).write_text(json.dumps({"generated_at": f"2026-03-27T10:00:0{i}Z"}))
+        
+    assert len(list(tmp_path.glob("report_*.json"))) == 3
+
+    with patch("sys.argv", ["cli.main", "--clear"]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+        except SystemExit as e:
+            assert e.code == 0
+
+    captured = capsys.readouterr()
+    assert "Cleared 3 saved report(s)." in captured.out
+    assert len(list(tmp_path.glob("report_*.json"))) == 0
+
+
+def test_cli_clear_flag_empty_dir(tmp_path, capsys):
+    """--clear must handle an empty data directory gracefully."""
+    import core.persistence as _p
+    
+    assert len(list(tmp_path.glob("report_*.json"))) == 0
+
+    with patch("sys.argv", ["cli.main", "--clear"]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+        except SystemExit as e:
+            assert e.code == 0
+
+    captured = capsys.readouterr()
+    assert "Cleared 0 saved report(s)." in captured.out
+
+
 if __name__ == "__main__":
     test_cli_detects_friction()
     test_cli_no_friction()

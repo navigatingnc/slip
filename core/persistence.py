@@ -84,6 +84,25 @@ def delete_report(report_id: str, data_dir: str | None = None) -> bool:
     return True
 
 
+def clear_reports(data_dir: str | None = None) -> int:
+    """Delete all persisted SlipReport JSON files from *data_dir*.
+
+    Args:
+        data_dir: Source directory (defaults to ``data/`` at repo root).
+
+    Returns:
+        The number of report files deleted.
+    """
+    directory = _data_dir(data_dir)
+    count = 0
+    for fname in os.listdir(directory):
+        if fname.startswith("report_") and fname.endswith(".json"):
+            filepath = os.path.join(directory, fname)
+            os.remove(filepath)
+            count += 1
+    return count
+
+
 def load_reports(data_dir: str | None = None) -> List[Dict[str, Any]]:
     """Load all persisted SlipReport JSON files from *data_dir*.
 

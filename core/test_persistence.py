@@ -2,7 +2,7 @@
 import os
 from .models import FrictionPoint, Opportunity
 from .report import SlipReport
-from .persistence import delete_report, load_report_by_id, load_reports, save_report
+from .persistence import clear_reports, delete_report, load_report_by_id, load_reports, save_report
 
 
 def _make_report(top: str = "delay") -> SlipReport:
@@ -91,3 +91,27 @@ def test_delete_report_not_in_load_reports_after_deletion(tmp_path):
     delete_report(report_id, data_dir=str(tmp_path))
     loaded = load_reports(data_dir=str(tmp_path))
     assert all(r.get("top_pattern") != "gap" for r in loaded)
+
+
+# ---------------------------------------------------------------------------
+# Phase 20: clear_reports tests
+# ---------------------------------------------------------------------------
+
+def test_clear_reports_removes_all_files(tmp_path):
+    """clear_reports must remove all JSON files and return the count."""
+    import time
+    r1 = _make_report("delay")
+    save_report(r1, data_dir=str(tmp_path))
+    time.sleep(1)  # ensure distinct timestamps
+    r2 = _make_report("gap")
+    save_report(r2, data_dir=str(tmp_path))
+    
+    # Add a non-report file
+    (tmp_path / "not_a_report.txt").write_text("ignore me")
+    
+    count = clear_reports(data_dir=str(tmp_path))
+    assert count == 2
+    
+    files = list(tmp_path.iterdir())
+    assert len(files) == 1
+    assert files[0].name == "not_a_report.txt"

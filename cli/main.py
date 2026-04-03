@@ -92,6 +92,11 @@ def main():
         action="store_true",
         help="List all persisted SlipReports from data/ and exit",
     )
+    parser.add_argument(
+        "--clear",
+        action="store_true",
+        help="Delete all persisted SlipReports from data/ and exit",
+    )
     args = parser.parse_args()
 
     # --list bypasses analysis entirely
@@ -99,6 +104,13 @@ def main():
         from core.persistence import load_reports
         reports = load_reports()
         _print_report_list(reports)
+        sys.exit(0)
+
+    # --clear bypasses analysis entirely
+    if args.clear:
+        from core.persistence import clear_reports
+        count = clear_reports()
+        print(f"Cleared {count} saved report(s).")
         sys.exit(0)
 
     if args.text:
@@ -110,6 +122,7 @@ def main():
         print("Usage: python -m cli.main --text 'your text here' [--score] [--save]")
         print("       echo 'your text' | python -m cli.main [--score] [--save]")
         print("       python -m cli.main --list")
+        print("       python -m cli.main --clear")
         return
 
     friction_points = detect(text, source=args.source)
