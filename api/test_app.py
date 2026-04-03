@@ -1,4 +1,4 @@
-"""Tests for SLIP local API (Phase 8 + Phase 12 + Phase 21)."""
+"""Tests for SLIP local API (Phase 8 + Phase 12 + Phase 21 + Phase 22)."""
 import sys
 import os
 
@@ -298,6 +298,53 @@ def test_delete_all_reports_empty_dir_returns_zero(tmp_path, monkeypatch):
     resp = client.delete("/reports")
     assert resp.status_code == 200
     assert resp.json()["deleted"] == 0
+
+
+# ---------------------------------------------------------------------------
+# GET /reports/{report_id}/export  (phase 22 — CSV export)
+# ---------------------------------------------------------------------------
+
+def test_export_report_returns_200(tmp_path, monkeypatch):
+    """GET /reports/{id}/export must return 200 with text/csv content type."""
+    import core.persistence as _p
+    monkeypatch.setattr(_p, "_DEFAULT_DATA_DIR", str(tmp_path))
+    client.post("/analyze", json={"signals": [{"text": "It takes too long and is overpriced.", "source": "test"}]})
+    files = list(tmp_path.glob("report_*.json"))
+    report_id = files[0].stem.replace("report_", "")
+    resp = client.get(f"/reports/{report_id}/export")
+    assert resp.status_code == 200
+    assert "text/csv" in resp.headers["content-type"]
+
+
+def test_export_report_contains_header_row(tmp_path, monkeypatch):
+    """Exported CSV must contain the expected column header row."""
+    import core.persistence as _p
+    monkeypatch.setattr(_p, "_DEFAULT_DATA_DIR", str(tmp_path))
+    client.post("/analyze", json={"signals": [{"text": "Broken workaround and too expensive.", "source": "test"}]})
+    files = list(tmp_path.glob("report_*.json"))
+    report_id = files[0].stem.replace("report_", "")
+    resp = client.get(f"/reports/{report_id}/export")
+    first_line = resp.text.splitlines()[0]
+    assert "Title" in first_line
+    assert "Composite Score" in first_line
+
+
+def test_export_report_returns_404_for_missing():
+    """GET /reports/{id}/export must return 404 when the report does not exist."""
+    resp = client.get("/reports/99991231T999999Z/export")
+    assert resp.status_code == 404
+
+
+def test_export_report_content_disposition(tmp_path, monkeypatch):
+    """Exported CSV must have a Content-Disposition attachment header."""
+    import core.persistence as _p
+    monkeypatch.setattr(_p, "_DEFAULT_DATA_DIR", str(tmp_path))
+    client.post("/analyze", json={"signals": [{"text": "Nobody offers a cheaper option.", "source": "test"}]})
+    files = list(tmp_path.glob("report_*.json"))
+    report_id = files[0].stem.replace("report_", "")
+    resp = client.get(f"/reports/{report_id}/export")
+    assert "attachment" in resp.headers.get("content-disposition", "")
+    assert report_id in resp.headers.get("content-disposition", "")
 
 
 if __name__ == "__main__":
