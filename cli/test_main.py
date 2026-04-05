@@ -1,4 +1,4 @@
-"""Tests for SLIP CLI integration (Phase 3 + Phase 5 + Phase 18 + Phase 19 + Phase 23)."""
+"""Tests for SLIP CLI integration (Phase 3 + Phase 5 + Phase 18 + Phase 19 + Phase 23 + Phase 25)."""
 import sys
 import os
 
@@ -268,6 +268,79 @@ def test_cli_export_id_unknown_id_exits_1(tmp_path, capsys):
         except SystemExit as e:
             exited_with = e.code
     assert exited_with == 1
+
+
+# ---------------------------------------------------------------------------
+# Phase 25: --summary flag tests
+# ---------------------------------------------------------------------------
+
+def test_cli_summary_prints_counts(tmp_path, capsys):
+    """--summary must print total_reports, total_signals, and total_friction."""
+    import json
+    import core.persistence as _p
+
+    reports = [
+        {
+            "generated_at": "2026-04-05T10:00:00Z",
+            "signal_count": 3,
+            "friction_count": 2,
+            "top_pattern": "delay",
+            "top_opportunity": "speed layer",
+            "opportunities": [{"title": "speed layer", "composite_score": 0.8}],
+        },
+        {
+            "generated_at": "2026-04-05T11:00:00Z",
+            "signal_count": 2,
+            "friction_count": 1,
+            "top_pattern": "workaround",
+            "top_opportunity": "automation tool",
+            "opportunities": [{"title": "automation tool", "composite_score": 0.6}],
+        },
+    ]
+    for r in reports:
+        stem = r["generated_at"][:19].replace("-", "").replace(":", "").replace("T", "T")
+        (tmp_path / f"report_{stem}Z.json").write_text(json.dumps(r))
+
+    with patch("sys.argv", ["cli.main", "--summary"]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+        except SystemExit as e:
+            assert e.code == 0
+
+    captured = capsys.readouterr()
+    assert "Total reports" in captured.out or "total_reports" in captured.out.lower() or "2" in captured.out
+    assert "5" in captured.out  # total signals = 3 + 2
+    assert "3" in captured.out  # total friction = 2 + 1
+
+
+def test_cli_summary_empty_dir(tmp_path, capsys):
+    """--summary must handle an empty data directory gracefully and exit 0."""
+    import core.persistence as _p
+
+    with patch("sys.argv", ["cli.main", "--summary"]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+        except SystemExit as e:
+            assert e.code == 0
+
+    captured = capsys.readouterr()
+    assert "0" in captured.out
+
+
+def test_cli_summary_exit_code_zero(tmp_path):
+    """--summary must exit with code 0."""
+    import core.persistence as _p
+
+    with patch("sys.argv", ["cli.main", "--summary"]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+            exited_with = 0
+        except SystemExit as e:
+            exited_with = e.code
+    assert exited_with == 0
 
 
 def test_cli_export_id_default_filename(tmp_path):

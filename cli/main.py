@@ -6,10 +6,12 @@ Phase 18: --save flag to persist a full SlipReport to data/; fix exit code.
 Phase 19: --list flag to display a summary of all persisted SlipReports.
 Phase 20: --clear flag to delete all persisted SlipReports.
 Phase 23: --export-id flag to export a saved report's opportunities to CSV by ID.
+Phase 25: --summary flag to print aggregate statistics across all persisted reports.
 """
 import argparse
 import csv
 import sys
+from collections import Counter
 from core import detect, score
 
 
@@ -56,6 +58,40 @@ def _print_report_list(reports):
         signal_count = r.get("signal_count", 0)
         top_opp = r.get("top_opportunity", "\u2014")
         print(f"  {report_id:<20}  {signal_count:>7}  {top_opp}")
+
+
+def _print_aggregate_summary(reports):
+    """Print aggregate statistics across all persisted SlipReports."""
+    total_reports = len(reports)
+    total_signals = sum(r.get("signal_count", 0) for r in reports)
+    total_friction = sum(r.get("friction_count", 0) for r in reports)
+
+    pattern_counter: Counter = Counter()
+    opp_scores: dict = {}
+    for r in reports:
+        if r.get("top_pattern"):
+            pattern_counter[r["top_pattern"]] += 1
+        for opp in r.get("opportunities", []):
+            title = opp.get("title", "")
+            s = opp.get("composite_score", 0.0)
+            if title and s > opp_scores.get(title, -1.0):
+                opp_scores[title] = s
+
+    top_patterns = [p for p, _ in pattern_counter.most_common(3)]
+    top_opps = sorted(opp_scores, key=lambda t: opp_scores[t], reverse=True)[:3]
+
+    print("SLIP — Aggregate Report Summary")
+    print("=" * 40)
+    print(f"  Total reports   : {total_reports}")
+    print(f"  Total signals   : {total_signals}")
+    print(f"  Total friction  : {total_friction}")
+    print(f"  Top patterns    : {', '.join(top_patterns) if top_patterns else '—'}")
+    print(f"  Top opportunities:")
+    if top_opps:
+        for i, title in enumerate(top_opps, 1):
+            print(f"    #{i} {title}  (score: {opp_scores[title]:.3f})")
+    else:
+        print("    —")
 
 
 def _export_report_by_id(report_id: str, out_path: str) -> int:
@@ -149,7 +185,19 @@ def main():
         metavar="FILE",
         help="Output CSV path for --export-id (default: slip_export_<id>.csv)",
     )
+    parser.add_argument(
+        "--summary",
+        action="store_true",
+        help="Print aggregate statistics across all persisted SlipReports and exit",
+    )
     args = parser.parse_args()
+
+    # --summary bypasses analysis entirely
+    if args.summary:
+        from core.persistence import load_reports
+        reports = load_reports()
+        _print_aggregate_summary(reports)
+        sys.exit(0)
 
     # --list bypasses analysis entirely
     if args.list:
@@ -178,6 +226,7 @@ def main():
         print("SLIP - System for Locating and Identifying Points of friction")
         print("Usage: python -m cli.main --text 'your text here' [--score] [--save]")
         print("       echo 'your text' | python -m cli.main [--score] [--save]")
+        print("       python -m cli.main --summary")
         print("       python -m cli.main --list")
         print("       python -m cli.main --clear")
         print("       python -m cli.main --export-id <REPORT_ID> [--out FILE]")
