@@ -1,4 +1,4 @@
-"""Local FastAPI application for SLIP — Phase 8 + Phase 12 + Phase 17 + Phase 21 + Phase 22.
+"""Local FastAPI application for SLIP — Phase 8 + Phase 12 + Phase 17 + Phase 21 + Phase 22 + Phase 24.
 
 Exposes the full ingest → detect → score → report pipeline over HTTP via a
 single POST /analyze endpoint, and a GET /reports endpoint that returns all
@@ -8,6 +8,7 @@ persisted SlipReports from the data/ directory. Run with:
 """
 import csv
 import io
+from collections import Counter
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI
@@ -20,7 +21,7 @@ from core.report import generate_report
 app = FastAPI(
     title="SLIP API",
     description="System for Locating and Identifying Points of friction — local API",
-    version="0.22.0",
+    version="0.24.0",
 )
 
 
@@ -74,6 +75,14 @@ class ReportsResponse(BaseModel):
     reports: List[Dict[str, Any]]
 
 
+class SummaryResponse(BaseModel):
+    total_reports: int
+    total_signals: int
+    total_friction: int
+    top_patterns: List[str]
+    top_opportunities: List[str]
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -82,6 +91,44 @@ class ReportsResponse(BaseModel):
 def health() -> Dict[str, str]:
     """Liveness check."""
     return {"status": "ok", "service": "slip-api"}
+
+
+@app.get("/reports/summary", response_model=SummaryResponse, tags=["reports"])
+def get_reports_summary() -> SummaryResponse:
+    """Return aggregate statistics across all persisted SlipReports.
+
+    Aggregates total report count, total signals analysed, total friction
+    points detected, the top-3 most frequent friction patterns, and the
+    top-3 opportunities ranked by composite score across all reports.
+    Returns zero counts and empty lists when no reports are persisted.
+    """
+    reports = load_reports()
+
+    total_signals = sum(r.get("signal_count", 0) for r in reports)
+    total_friction = sum(r.get("friction_count", 0) for r in reports)
+
+    pattern_counter: Counter = Counter()
+    opp_scores: Dict[str, float] = {}
+
+    for r in reports:
+        if r.get("top_pattern"):
+            pattern_counter[r["top_pattern"]] += 1
+        for opp in r.get("opportunities", []):
+            title = opp.get("title", "")
+            score = opp.get("composite_score", 0.0)
+            if title and score > opp_scores.get(title, -1.0):
+                opp_scores[title] = score
+
+    top_patterns = [p for p, _ in pattern_counter.most_common(3)]
+    top_opportunities = sorted(opp_scores, key=lambda t: opp_scores[t], reverse=True)[:3]
+
+    return SummaryResponse(
+        total_reports=len(reports),
+        total_signals=total_signals,
+        total_friction=total_friction,
+        top_patterns=top_patterns,
+        top_opportunities=top_opportunities,
+    )
 
 
 @app.post("/analyze", response_model=AnalyzeResponse, tags=["analysis"])

@@ -347,6 +347,52 @@ def test_export_report_content_disposition(tmp_path, monkeypatch):
     assert report_id in resp.headers.get("content-disposition", "")
 
 
+# ---------------------------------------------------------------------------
+# GET /reports/summary  (phase 24 — aggregate statistics)
+# ---------------------------------------------------------------------------
+
+def test_summary_returns_200():
+    """GET /reports/summary must return 200."""
+    resp = client.get("/reports/summary")
+    assert resp.status_code == 200
+
+
+def test_summary_has_required_keys():
+    """GET /reports/summary response must contain all required keys."""
+    resp = client.get("/reports/summary")
+    data = resp.json()
+    for key in ("total_reports", "total_signals", "total_friction", "top_patterns", "top_opportunities"):
+        assert key in data, f"Missing key: {key}"
+
+
+def test_summary_counts_reflect_persisted_reports(tmp_path, monkeypatch):
+    """Summary counts must match the number of signals and friction in persisted reports."""
+    import core.persistence as _p
+    monkeypatch.setattr(_p, "_DEFAULT_DATA_DIR", str(tmp_path))
+    client.post("/analyze", json={"signals": [
+        {"text": "It takes too long and is overpriced.", "source": "test"},
+        {"text": "Nobody offers a workaround for this broken flow.", "source": "test"},
+    ]})
+    resp = client.get("/reports/summary")
+    data = resp.json()
+    assert data["total_reports"] >= 1
+    assert data["total_signals"] >= 2
+    assert data["total_friction"] >= 1
+
+
+def test_summary_empty_data_dir_returns_zeros(tmp_path, monkeypatch):
+    """GET /reports/summary must return zero counts when no reports are persisted."""
+    import core.persistence as _p
+    monkeypatch.setattr(_p, "_DEFAULT_DATA_DIR", str(tmp_path))
+    resp = client.get("/reports/summary")
+    data = resp.json()
+    assert data["total_reports"] == 0
+    assert data["total_signals"] == 0
+    assert data["total_friction"] == 0
+    assert data["top_patterns"] == []
+    assert data["top_opportunities"] == []
+
+
 if __name__ == "__main__":
     test_health_returns_200()
     test_health_payload()
