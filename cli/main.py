@@ -4,8 +4,11 @@ Phase 3: basic detect output.
 Phase 5: --score flag for ranked opportunities.
 Phase 18: --save flag to persist a full SlipReport to data/; fix exit code.
 Phase 19: --list flag to display a summary of all persisted SlipReports.
+Phase 20: --clear flag to delete all persisted SlipReports.
+Phase 23: --export-id flag to export a saved report's opportunities to CSV by ID.
 """
 import argparse
+import csv
 import sys
 from core import detect, score
 
@@ -55,6 +58,41 @@ def _print_report_list(reports):
         print(f"  {report_id:<20}  {signal_count:>7}  {top_opp}")
 
 
+def _export_report_by_id(report_id: str, out_path: str) -> int:
+    """Load a persisted report by ID and write its opportunities to a CSV.
+
+    Returns 0 on success, 1 if the report is not found.
+    """
+    from core.persistence import load_report_by_id
+
+    report = load_report_by_id(report_id)
+    if report is None:
+        print(f"Error: report '{report_id}' not found.", file=sys.stderr)
+        return 1
+
+    with open(out_path, "w", newline="") as fh:
+        writer = csv.writer(fh)
+        writer.writerow([
+            "Title", "Composite Score", "Severity", "Frequency",
+            "Automation Potential", "Willingness to Pay", "Market Size",
+            "Signal Count",
+        ])
+        for opp in report.get("opportunities", []):
+            writer.writerow([
+                opp.get("title", ""),
+                opp.get("composite_score", ""),
+                opp.get("severity", ""),
+                opp.get("frequency", ""),
+                opp.get("automation_potential", ""),
+                opp.get("willingness_to_pay", ""),
+                opp.get("market_size", ""),
+                opp.get("signal_count", ""),
+            ])
+
+    print(f"Exported report '{report_id}' to {out_path}")
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="SLIP - System for Locating and Identifying Points of friction"
@@ -97,6 +135,20 @@ def main():
         action="store_true",
         help="Delete all persisted SlipReports from data/ and exit",
     )
+    parser.add_argument(
+        "--export-id",
+        type=str,
+        default=None,
+        metavar="REPORT_ID",
+        help="Export a saved report's opportunities to CSV by its ID and exit",
+    )
+    parser.add_argument(
+        "--out",
+        type=str,
+        default=None,
+        metavar="FILE",
+        help="Output CSV path for --export-id (default: slip_export_<id>.csv)",
+    )
     args = parser.parse_args()
 
     # --list bypasses analysis entirely
@@ -113,6 +165,11 @@ def main():
         print(f"Cleared {count} saved report(s).")
         sys.exit(0)
 
+    # --export-id bypasses analysis entirely
+    if args.export_id:
+        out_path = args.out or f"slip_export_{args.export_id}.csv"
+        sys.exit(_export_report_by_id(args.export_id, out_path))
+
     if args.text:
         text = args.text
     elif not sys.stdin.isatty():
@@ -123,6 +180,7 @@ def main():
         print("       echo 'your text' | python -m cli.main [--score] [--save]")
         print("       python -m cli.main --list")
         print("       python -m cli.main --clear")
+        print("       python -m cli.main --export-id <REPORT_ID> [--out FILE]")
         return
 
     friction_points = detect(text, source=args.source)
@@ -136,7 +194,7 @@ def main():
     if args.score:
         opportunities = score(friction_points)
         _print_opportunities(opportunities)
-        
+
         if args.export:
             from core.export import export_opportunities
             from core.report import generate_report
