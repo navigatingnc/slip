@@ -1,4 +1,4 @@
-"""Tests for SLIP CLI integration (Phase 3 + Phase 5 + Phase 18 + Phase 19)."""
+"""Tests for SLIP CLI integration (Phase 3 + Phase 5 + Phase 18 + Phase 19 + Phase 23)."""
 import sys
 import os
 
@@ -209,6 +209,90 @@ def test_cli_clear_flag_empty_dir(tmp_path, capsys):
 
     captured = capsys.readouterr()
     assert "Cleared 0 saved report(s)." in captured.out
+
+
+# ---------------------------------------------------------------------------
+# Phase 23: --export-id flag tests
+# ---------------------------------------------------------------------------
+
+def test_cli_export_id_writes_csv_with_header(tmp_path, capsys):
+    """--export-id must write a CSV with the correct header row."""
+    import json
+    import core.persistence as _p
+
+    report_id = "20260405T120000Z"
+    report = {
+        "generated_at": "2026-04-05T12:00:00Z",
+        "signal_count": 1,
+        "friction_count": 1,
+        "top_pattern": "delay",
+        "top_opportunity": "speed improvement",
+        "opportunities": [
+            {
+                "title": "speed improvement",
+                "composite_score": 0.75,
+                "severity": 0.8,
+                "frequency": 0.7,
+                "automation_potential": 0.6,
+                "willingness_to_pay": 0.9,
+                "market_size": 0.5,
+                "signal_count": 1,
+            }
+        ],
+    }
+    fname = f"report_{report_id}.json"
+    (tmp_path / fname).write_text(json.dumps(report))
+
+    out_file = str(tmp_path / "export.csv")
+    with patch("sys.argv", ["cli.main", "--export-id", report_id, "--out", out_file]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+        except SystemExit as e:
+            assert e.code == 0
+
+    with open(out_file) as fh:
+        first_line = fh.readline().strip()
+    assert first_line == "Title,Composite Score,Severity,Frequency,Automation Potential,Willingness to Pay,Market Size,Signal Count"
+
+
+def test_cli_export_id_unknown_id_exits_1(tmp_path, capsys):
+    """--export-id must exit 1 and print an error for an unknown report ID."""
+    import core.persistence as _p
+
+    with patch("sys.argv", ["cli.main", "--export-id", "nonexistent_id"]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+            exited_with = 0
+        except SystemExit as e:
+            exited_with = e.code
+    assert exited_with == 1
+
+
+def test_cli_export_id_default_filename(tmp_path):
+    """--export-id without --out must write to slip_export_<id>.csv."""
+    import json
+    import core.persistence as _p
+
+    report_id = "20260405T130000Z"
+    report = {
+        "generated_at": "2026-04-05T13:00:00Z",
+        "signal_count": 1,
+        "opportunities": [],
+    }
+    (tmp_path / f"report_{report_id}.json").write_text(json.dumps(report))
+
+    with patch("sys.argv", ["cli.main", "--export-id", report_id]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+        except SystemExit:
+            pass
+
+    import os
+    assert os.path.exists(f"slip_export_{report_id}.csv")
+    os.remove(f"slip_export_{report_id}.csv")
 
 
 if __name__ == "__main__":
