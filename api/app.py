@@ -1,4 +1,4 @@
-"""Local FastAPI application for SLIP — Phase 8 + Phase 12 + Phase 17 + Phase 21 + Phase 22 + Phase 24 + Phase 26 + Phase 28.
+"""Local FastAPI application for SLIP — Phase 8 + Phase 12 + Phase 17 + Phase 21 + Phase 22 + Phase 24 + Phase 26 + Phase 28 + Phase 30.
 
 Exposes the full ingest → detect → score → report pipeline over HTTP via a
 single POST /analyze endpoint, and a GET /reports endpoint that returns all
@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field
 from core.persistence import clear_reports, delete_report, load_report_by_id, load_reports, save_report
 from core.report import generate_report
 
-_APP_VERSION = "0.28.0"
+_APP_VERSION = "0.30.0"
 
 app = FastAPI(
     title="SLIP API",
@@ -94,9 +94,24 @@ class HealthResponse(BaseModel):
     checked_at: str
 
 
+class VersionResponse(BaseModel):
+    version: str
+    service: str
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+
+@app.get("/version", response_model=VersionResponse, tags=["meta"])
+def version() -> VersionResponse:
+    """Return the current API version and service name.
+
+    Mirrors the CLI ``--version`` flag (phase 29).  Useful for quick
+    programmatic version checks without the full overhead of ``/health``.
+    """
+    return VersionResponse(version=_APP_VERSION, service="slip-api")
+
 
 @app.get("/health", response_model=HealthResponse, tags=["meta"])
 def health() -> HealthResponse:

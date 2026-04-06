@@ -441,6 +441,31 @@ def test_app_version_semver_format():
     )
 
 
+# ---------------------------------------------------------------------------
+# Phase 30: GET /version endpoint tests
+# ---------------------------------------------------------------------------
+
+def test_version_endpoint_returns_200():
+    """GET /version must return HTTP 200 (phase 30)."""
+    resp = client.get("/version")
+    assert resp.status_code == 200
+
+
+def test_version_endpoint_payload_keys():
+    """GET /version must return 'version' and 'service' keys (phase 30)."""
+    resp = client.get("/version")
+    data = resp.json()
+    assert "version" in data
+    assert "service" in data
+
+
+def test_version_endpoint_matches_app_version():
+    """GET /version 'version' field must equal _APP_VERSION (phase 30)."""
+    from api.app import _APP_VERSION
+    resp = client.get("/version")
+    assert resp.json()["version"] == _APP_VERSION
+
+
 if __name__ == "__main__":
     test_health_returns_200()
     test_health_payload()
