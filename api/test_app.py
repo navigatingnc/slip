@@ -415,6 +415,32 @@ def test_summary_empty_data_dir_returns_zeros(tmp_path, monkeypatch):
     assert data["top_opportunities"] == []
 
 
+# ---------------------------------------------------------------------------
+# Phase 28: _APP_VERSION constant tests
+# ---------------------------------------------------------------------------
+
+def test_app_version_constant_exists():
+    """_APP_VERSION module-level constant must be importable from api.app (phase 28)."""
+    from api.app import _APP_VERSION
+    assert isinstance(_APP_VERSION, str) and len(_APP_VERSION) > 0
+
+
+def test_app_version_constant_matches_health():
+    """GET /health version must equal the _APP_VERSION constant (phase 28)."""
+    from api.app import _APP_VERSION
+    resp = client.get("/health")
+    assert resp.json()["version"] == _APP_VERSION
+
+
+def test_app_version_semver_format():
+    """_APP_VERSION must follow MAJOR.MINOR.PATCH semantic versioning format (phase 28)."""
+    import re
+    from api.app import _APP_VERSION
+    assert re.fullmatch(r"\d+\.\d+\.\d+", _APP_VERSION), (
+        f"_APP_VERSION {_APP_VERSION!r} does not match MAJOR.MINOR.PATCH"
+    )
+
+
 if __name__ == "__main__":
     test_health_returns_200()
     test_health_payload()
