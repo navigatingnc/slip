@@ -1,4 +1,4 @@
-"""Local FastAPI application for SLIP — Phase 8 + Phase 12 + Phase 17 + Phase 21 + Phase 22 + Phase 24.
+"""Local FastAPI application for SLIP — Phase 8 + Phase 12 + Phase 17 + Phase 21 + Phase 22 + Phase 24 + Phase 26.
 
 Exposes the full ingest → detect → score → report pipeline over HTTP via a
 single POST /analyze endpoint, and a GET /reports endpoint that returns all
@@ -9,6 +9,7 @@ persisted SlipReports from the data/ directory. Run with:
 import csv
 import io
 from collections import Counter
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI
@@ -21,7 +22,7 @@ from core.report import generate_report
 app = FastAPI(
     title="SLIP API",
     description="System for Locating and Identifying Points of friction — local API",
-    version="0.24.0",
+    version="0.26.0",
 )
 
 
@@ -83,14 +84,34 @@ class SummaryResponse(BaseModel):
     top_opportunities: List[str]
 
 
+class HealthResponse(BaseModel):
+    status: str
+    service: str
+    version: str
+    report_count: int
+    checked_at: str
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
 
-@app.get("/health", tags=["meta"])
-def health() -> Dict[str, str]:
-    """Liveness check."""
-    return {"status": "ok", "service": "slip-api"}
+@app.get("/health", response_model=HealthResponse, tags=["meta"])
+def health() -> HealthResponse:
+    """Liveness and readiness check.
+
+    Returns operational metadata: API version, count of persisted reports,
+    and the UTC timestamp of the check.  Existing ``status`` and ``service``
+    fields are preserved for backward compatibility.
+    """
+    report_count = len(load_reports())
+    return HealthResponse(
+        status="ok",
+        service="slip-api",
+        version=app.version,
+        report_count=report_count,
+        checked_at=datetime.now(timezone.utc).isoformat(),
+    )
 
 
 @app.get("/reports/summary", response_model=SummaryResponse, tags=["reports"])
