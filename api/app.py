@@ -1,4 +1,4 @@
-"""Local FastAPI application for SLIP — Phase 8 + Phase 12 + Phase 17 + Phase 21 + Phase 22 + Phase 24 + Phase 26.
+"""Local FastAPI application for SLIP — Phase 8 + Phase 12 + Phase 17 + Phase 21 + Phase 22 + Phase 24 + Phase 26 + Phase 28.
 
 Exposes the full ingest → detect → score → report pipeline over HTTP via a
 single POST /analyze endpoint, and a GET /reports endpoint that returns all
@@ -19,10 +19,12 @@ from pydantic import BaseModel, Field
 from core.persistence import clear_reports, delete_report, load_report_by_id, load_reports, save_report
 from core.report import generate_report
 
+_APP_VERSION = "0.28.0"
+
 app = FastAPI(
     title="SLIP API",
     description="System for Locating and Identifying Points of friction — local API",
-    version="0.26.0",
+    version=_APP_VERSION,
 )
 
 
