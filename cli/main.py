@@ -7,12 +7,17 @@ Phase 19: --list flag to display a summary of all persisted SlipReports.
 Phase 20: --clear flag to delete all persisted SlipReports.
 Phase 23: --export-id flag to export a saved report's opportunities to CSV by ID.
 Phase 25: --summary flag to print aggregate statistics across all persisted reports.
+Phase 27: --health flag to print operational metadata (version, report count, timestamp).
 """
 import argparse
 import csv
 import sys
 from collections import Counter
+from datetime import datetime, timezone
+
 from core import detect, score
+
+_APP_VERSION = "0.27.0"
 
 
 def _print_friction(results):
@@ -92,6 +97,20 @@ def _print_aggregate_summary(reports):
             print(f"    #{i} {title}  (score: {opp_scores[title]:.3f})")
     else:
         print("    —")
+
+
+def _print_health() -> None:
+    """Print operational metadata: version, report count, and UTC timestamp."""
+    from core.persistence import load_reports
+    report_count = len(load_reports())
+    checked_at = datetime.now(timezone.utc).isoformat()
+    print("SLIP — Health Check")
+    print("=" * 40)
+    print(f"  Status        : ok")
+    print(f"  Service       : slip-cli")
+    print(f"  Version       : {_APP_VERSION}")
+    print(f"  Report count  : {report_count}")
+    print(f"  Checked at    : {checked_at}")
 
 
 def _export_report_by_id(report_id: str, out_path: str) -> int:
@@ -190,7 +209,17 @@ def main():
         action="store_true",
         help="Print aggregate statistics across all persisted SlipReports and exit",
     )
+    parser.add_argument(
+        "--health",
+        action="store_true",
+        help="Print operational metadata (version, report count, timestamp) and exit",
+    )
     args = parser.parse_args()
+
+    # --health bypasses analysis entirely
+    if args.health:
+        _print_health()
+        sys.exit(0)
 
     # --summary bypasses analysis entirely
     if args.summary:
@@ -226,6 +255,7 @@ def main():
         print("SLIP - System for Locating and Identifying Points of friction")
         print("Usage: python -m cli.main --text 'your text here' [--score] [--save]")
         print("       echo 'your text' | python -m cli.main [--score] [--save]")
+        print("       python -m cli.main --health")
         print("       python -m cli.main --summary")
         print("       python -m cli.main --list")
         print("       python -m cli.main --clear")
