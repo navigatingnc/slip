@@ -25,6 +25,28 @@ def test_health_payload():
     assert "slip" in data["service"]
 
 
+def test_health_has_new_keys():
+    """GET /health must return version, report_count, and checked_at (phase 26)."""
+    resp = client.get("/health")
+    data = resp.json()
+    for key in ("version", "report_count", "checked_at"):
+        assert key in data, f"Missing key in /health response: {key}"
+
+
+def test_health_version_matches_app():
+    """GET /health version field must match the FastAPI app version string."""
+    from api.app import app as slip_app
+    resp = client.get("/health")
+    assert resp.json()["version"] == slip_app.version
+
+
+def test_health_report_count_is_non_negative():
+    """GET /health report_count must be a non-negative integer."""
+    resp = client.get("/health")
+    count = resp.json()["report_count"]
+    assert isinstance(count, int) and count >= 0
+
+
 # ---------------------------------------------------------------------------
 # /analyze — happy path
 # ---------------------------------------------------------------------------
