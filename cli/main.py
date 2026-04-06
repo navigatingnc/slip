@@ -8,6 +8,7 @@ Phase 20: --clear flag to delete all persisted SlipReports.
 Phase 23: --export-id flag to export a saved report's opportunities to CSV by ID.
 Phase 25: --summary flag to print aggregate statistics across all persisted reports.
 Phase 27: --health flag to print operational metadata (version, report count, timestamp).
+Phase 29: --version flag to print the version string and exit; bump _APP_VERSION to 0.29.0.
 """
 import argparse
 import csv
@@ -17,7 +18,7 @@ from datetime import datetime, timezone
 
 from core import detect, score
 
-_APP_VERSION = "0.27.0"
+_APP_VERSION = "0.29.0"
 
 
 def _print_friction(results):
@@ -214,7 +215,17 @@ def main():
         action="store_true",
         help="Print operational metadata (version, report count, timestamp) and exit",
     )
+    parser.add_argument(
+        "--version",
+        action="store_true",
+        help="Print the SLIP version string and exit",
+    )
     args = parser.parse_args()
+
+    # --version bypasses analysis entirely
+    if args.version:
+        print(f"SLIP {_APP_VERSION}")
+        sys.exit(0)
 
     # --health bypasses analysis entirely
     if args.health:
@@ -255,6 +266,7 @@ def main():
         print("SLIP - System for Locating and Identifying Points of friction")
         print("Usage: python -m cli.main --text 'your text here' [--score] [--save]")
         print("       echo 'your text' | python -m cli.main [--score] [--save]")
+        print("       python -m cli.main --version")
         print("       python -m cli.main --health")
         print("       python -m cli.main --summary")
         print("       python -m cli.main --list")
