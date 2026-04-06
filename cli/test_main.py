@@ -1,4 +1,4 @@
-"""Tests for SLIP CLI integration (Phase 3 + Phase 5 + Phase 18 + Phase 19 + Phase 23 + Phase 25)."""
+"""Tests for SLIP CLI integration (Phase 3 + Phase 5 + Phase 18 + Phase 19 + Phase 23 + Phase 25 + Phase 27)."""
 import sys
 import os
 
@@ -174,12 +174,12 @@ def test_cli_clear_flag_deletes_reports(tmp_path, capsys):
     """--clear must delete all saved reports and print a confirmation."""
     import json
     import core.persistence as _p
-    
+
     # Create mock reports
     for i in range(3):
         fname = f"report_20260327T10000{i}Z.json"
         (tmp_path / fname).write_text(json.dumps({"generated_at": f"2026-03-27T10:00:0{i}Z"}))
-        
+
     assert len(list(tmp_path.glob("report_*.json"))) == 3
 
     with patch("sys.argv", ["cli.main", "--clear"]), \
@@ -197,7 +197,7 @@ def test_cli_clear_flag_deletes_reports(tmp_path, capsys):
 def test_cli_clear_flag_empty_dir(tmp_path, capsys):
     """--clear must handle an empty data directory gracefully."""
     import core.persistence as _p
-    
+
     assert len(list(tmp_path.glob("report_*.json"))) == 0
 
     with patch("sys.argv", ["cli.main", "--clear"]), \
@@ -366,6 +366,58 @@ def test_cli_export_id_default_filename(tmp_path):
     import os
     assert os.path.exists(f"slip_export_{report_id}.csv")
     os.remove(f"slip_export_{report_id}.csv")
+
+
+# ---------------------------------------------------------------------------
+# Phase 27: --health flag tests
+# ---------------------------------------------------------------------------
+
+def test_cli_health_prints_required_fields(tmp_path, capsys):
+    """--health must print status, service, version, report_count, and checked_at."""
+    import core.persistence as _p
+    with patch("sys.argv", ["cli.main", "--health"]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+        except SystemExit as e:
+            assert e.code == 0
+    captured = capsys.readouterr()
+    for field in ("status", "service", "version", "report count", "checked at"):
+        assert field.lower() in captured.out.lower(), f"Missing field in --health output: {field}"
+
+
+def test_cli_health_exit_code_zero(tmp_path):
+    """--health must exit with code 0."""
+    import core.persistence as _p
+    with patch("sys.argv", ["cli.main", "--health"]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+            exited_with = 0
+        except SystemExit as e:
+            exited_with = e.code
+    assert exited_with == 0
+
+
+def test_cli_health_report_count_non_negative(tmp_path, capsys):
+    """--health report_count must be a non-negative integer in the output."""
+    import core.persistence as _p
+    with patch("sys.argv", ["cli.main", "--health"]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+        except SystemExit:
+            pass
+    captured = capsys.readouterr()
+    # Extract the report_count line and verify it contains a non-negative integer
+    for line in captured.out.splitlines():
+        if "report count" in line.lower():
+            count_str = line.split(":")[-1].strip()
+            assert count_str.isdigit(), f"report_count is not a non-negative integer: {count_str!r}"
+            assert int(count_str) >= 0
+            break
+    else:
+        raise AssertionError("No 'report count' line found in --health output")
 
 
 if __name__ == "__main__":
