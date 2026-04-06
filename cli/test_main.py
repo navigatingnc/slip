@@ -420,6 +420,44 @@ def test_cli_health_report_count_non_negative(tmp_path, capsys):
         raise AssertionError("No 'report count' line found in --health output")
 
 
+# ---------------------------------------------------------------------------
+# Phase 29: --version flag tests
+# ---------------------------------------------------------------------------
+
+def test_cli_version_flag_prints_version(capsys):
+    """--version must print a string containing the _APP_VERSION constant."""
+    from cli.main import _APP_VERSION
+    with patch("sys.argv", ["cli.main", "--version"]):
+        try:
+            main()
+        except SystemExit:
+            pass
+    captured = capsys.readouterr()
+    assert _APP_VERSION in captured.out
+
+
+def test_cli_version_flag_exits_zero(capsys):
+    """--version must exit with code 0."""
+    with patch("sys.argv", ["cli.main", "--version"]):
+        try:
+            main()
+            exited_with = 0
+        except SystemExit as e:
+            exited_with = e.code
+    assert exited_with == 0
+
+
+def test_cli_version_output_contains_slip(capsys):
+    """--version output must contain the 'SLIP' prefix."""
+    with patch("sys.argv", ["cli.main", "--version"]):
+        try:
+            main()
+        except SystemExit:
+            pass
+    captured = capsys.readouterr()
+    assert captured.out.strip().startswith("SLIP")
+
+
 if __name__ == "__main__":
     test_cli_detects_friction()
     test_cli_no_friction()
