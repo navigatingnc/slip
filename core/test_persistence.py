@@ -2,7 +2,7 @@
 import os
 from .models import FrictionPoint, Opportunity
 from .report import SlipReport
-from .persistence import clear_reports, delete_report, load_report_by_id, load_reports, save_report
+from .persistence import clear_reports, delete_report, load_reports, save_report
 
 
 def _make_report(top: str = "delay") -> SlipReport:

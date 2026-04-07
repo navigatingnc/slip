@@ -295,7 +295,8 @@ def test_delete_all_reports_returns_200(tmp_path, monkeypatch):
     monkeypatch.setattr(_p, "_DEFAULT_DATA_DIR", str(tmp_path))
     # Seed two reports
     client.post("/analyze", json={"signals": [{"text": "It takes too long.", "source": "test"}]})
-    import time; time.sleep(1)
+    import time
+    time.sleep(1)
     client.post("/analyze", json={"signals": [{"text": "Broken workaround.", "source": "test"}]})
     resp = client.delete("/reports")
     assert resp.status_code == 200

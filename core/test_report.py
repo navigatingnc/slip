@@ -1,6 +1,5 @@
 """Tests for SLIP report generator (Phase 7)."""
 from core.report import SlipReport, generate_report
-from core.models import Opportunity, FrictionPoint
 
 
 # --- generate_report() ---

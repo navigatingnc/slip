@@ -2,7 +2,6 @@
 Exports the ranked Opportunities from a SlipReport to a CSV file.
 """
 import csv
-from typing import List
 from .report import SlipReport
 
 def export_opportunities(report: SlipReport, filepath: str) -> None:

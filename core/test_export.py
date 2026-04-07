@@ -1,5 +1,4 @@
 """Tests for the export module."""
-import os
 import csv
 from .models import FrictionPoint, Opportunity
 from .report import SlipReport

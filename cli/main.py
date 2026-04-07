@@ -92,7 +92,7 @@ def _print_aggregate_summary(reports):
     print(f"  Total signals   : {total_signals}")
     print(f"  Total friction  : {total_friction}")
     print(f"  Top patterns    : {', '.join(top_patterns) if top_patterns else '—'}")
-    print(f"  Top opportunities:")
+    print("  Top opportunities:")
     if top_opps:
         for i, title in enumerate(top_opps, 1):
             print(f"    #{i} {title}  (score: {opp_scores[title]:.3f})")
@@ -107,8 +107,8 @@ def _print_health() -> None:
     checked_at = datetime.now(timezone.utc).isoformat()
     print("SLIP — Health Check")
     print("=" * 40)
-    print(f"  Status        : ok")
-    print(f"  Service       : slip-cli")
+    print("  Status        : ok")
+    print("  Service       : slip-cli")
     print(f"  Version       : {_APP_VERSION}")
     print(f"  Report count  : {report_count}")
     print(f"  Checked at    : {checked_at}")
