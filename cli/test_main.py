@@ -1,4 +1,4 @@
-"""Tests for SLIP CLI integration (Phase 3 + Phase 5 + Phase 18 + Phase 19 + Phase 23 + Phase 25 + Phase 27)."""
+"""Tests for SLIP CLI integration (Phase 3 + Phase 5 + Phase 18 + Phase 19 + Phase 23 + Phase 25 + Phase 27 + Phase 32)."""
 import sys
 import os
 
@@ -456,6 +456,96 @@ def test_cli_version_output_contains_slip(capsys):
             pass
     captured = capsys.readouterr()
     assert captured.out.strip().startswith("SLIP")
+
+
+# ---------------------------------------------------------------------------
+# Phase 32: --file flag tests
+# ---------------------------------------------------------------------------
+
+def test_cli_file_flag_batch_analysis(tmp_path, capsys):
+    """--file must run batch analysis on a JSON array of signals."""
+    import json
+    signals = [
+        {"text": "It takes too long to get a response.", "source": "reddit"},
+        {"text": "I had to hack a workaround for the export.", "source": "forum"},
+    ]
+    signals_file = tmp_path / "signals.json"
+    signals_file.write_text(json.dumps(signals))
+
+    with patch("sys.argv", ["cli.main", "--file", str(signals_file)]):
+        try:
+            main()
+        except SystemExit as e:
+            assert e.code == 0
+
+    captured = capsys.readouterr()
+    assert "Batch analysis: 2 signal(s)" in captured.out
+
+
+def test_cli_file_flag_saves_report(tmp_path, capsys):
+    """--file --save must persist the batch report to data/."""
+    import json
+    import core.persistence as _p
+
+    signals = [{"text": "This is broken and awful.", "source": "test"}]
+    signals_file = tmp_path / "signals.json"
+    signals_file.write_text(json.dumps(signals))
+
+    with patch("sys.argv", ["cli.main", "--file", str(signals_file), "--save"]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+        except SystemExit:
+            pass
+
+    files = list(tmp_path.glob("report_*.json"))
+    assert len(files) == 1
+
+
+def test_cli_file_flag_invalid_json(tmp_path, capsys):
+    """--file must exit 1 when the JSON file is invalid."""
+    bad_file = tmp_path / "bad.json"
+    bad_file.write_text("{not valid json")
+
+    with patch("sys.argv", ["cli.main", "--file", str(bad_file)]):
+        try:
+            main()
+            exited_with = 0
+        except SystemExit as e:
+            exited_with = e.code
+    assert exited_with == 1
+
+
+def test_cli_file_flag_empty_array(tmp_path, capsys):
+    """--file must exit 1 when the JSON file contains an empty array."""
+    import json
+    empty_file = tmp_path / "empty.json"
+    empty_file.write_text(json.dumps([]))
+
+    with patch("sys.argv", ["cli.main", "--file", str(empty_file)]):
+        try:
+            main()
+            exited_with = 0
+        except SystemExit as e:
+            exited_with = e.code
+    assert exited_with == 1
+
+
+def test_cli_file_flag_no_friction(tmp_path, capsys):
+    """--file must handle signals with no friction gracefully."""
+    import json
+    signals = [{"text": "Everything works perfectly.", "source": "test"}]
+    signals_file = tmp_path / "signals.json"
+    signals_file.write_text(json.dumps(signals))
+
+    with patch("sys.argv", ["cli.main", "--file", str(signals_file)]):
+        try:
+            main()
+        except SystemExit as e:
+            assert e.code == 0
+
+    captured = capsys.readouterr()
+    assert "No friction detected." in captured.out
 
 
 if __name__ == "__main__":

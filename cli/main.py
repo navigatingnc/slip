@@ -9,16 +9,18 @@ Phase 23: --export-id flag to export a saved report's opportunities to CSV by ID
 Phase 25: --summary flag to print aggregate statistics across all persisted reports.
 Phase 27: --health flag to print operational metadata (version, report count, timestamp).
 Phase 29: --version flag to print the version string and exit; bump _APP_VERSION to 0.29.0.
+Phase 32: --file flag for batch signal ingestion from a JSON file.
 """
 import argparse
 import csv
+import json
 import sys
 from collections import Counter
 from datetime import datetime, timezone
 
 from core import detect, score
 
-_APP_VERSION = "0.29.0"
+_APP_VERSION = "0.32.0"
 
 
 def _print_friction(results):
@@ -220,6 +222,13 @@ def main():
         action="store_true",
         help="Print the SLIP version string and exit",
     )
+    parser.add_argument(
+        "--file",
+        type=str,
+        default=None,
+        metavar="JSON_FILE",
+        help="Path to a JSON file containing an array of signal objects for batch analysis",
+    )
     args = parser.parse_args()
 
     # --version bypasses analysis entirely
@@ -258,6 +267,35 @@ def main():
         out_path = args.out or f"slip_export_{args.export_id}.csv"
         sys.exit(_export_report_by_id(args.export_id, out_path))
 
+    # --file: batch signal ingestion from a JSON file
+    if args.file:
+        from core.report import generate_report
+        try:
+            with open(args.file, "r", encoding="utf-8") as fh:
+                raw_signals = json.load(fh)
+        except (OSError, json.JSONDecodeError) as exc:
+            print(f"Error reading '{args.file}': {exc}", file=sys.stderr)
+            sys.exit(1)
+        if not isinstance(raw_signals, list) or not raw_signals:
+            print("Error: JSON file must contain a non-empty array of signal objects.", file=sys.stderr)
+            sys.exit(1)
+        report = generate_report(raw_signals)
+        print(f"Batch analysis: {report.signal_count} signal(s), "
+              f"{report.friction_count} friction point(s) detected.")
+        if report.opportunities:
+            _print_opportunities(report.opportunities)
+        else:
+            print("No friction detected.")
+        if args.save:
+            from core.persistence import save_report
+            filepath = save_report(report)
+            print(f"Report saved to {filepath}")
+        if args.export:
+            from core.export import export_opportunities
+            export_opportunities(report, args.export)
+            print(f"Exported opportunities to {args.export}")
+        sys.exit(0)
+
     if args.text:
         text = args.text
     elif not sys.stdin.isatty():
@@ -266,6 +304,7 @@ def main():
         print("SLIP - System for Locating and Identifying Points of friction")
         print("Usage: python -m cli.main --text 'your text here' [--score] [--save]")
         print("       echo 'your text' | python -m cli.main [--score] [--save]")
+        print("       python -m cli.main --file signals.json [--save] [--export out.csv]")
         print("       python -m cli.main --version")
         print("       python -m cli.main --health")
         print("       python -m cli.main --summary")
