@@ -1,0 +1,11 @@
+# ruff configuration for SLIP — phase 31
+# Enforces the same rules that will be run in CI.
+# Run locally: ruff check .
+
+[lint]
+select = ["E", "F"]
+ignore = ["E501"]  # line-length: existing codebase has long lines; enforce in a future phase
+
+[lint.per-file-ignores]
+# Test files may use assert statements freely
+"**/test_*.py" = []

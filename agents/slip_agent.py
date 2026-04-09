@@ -9,9 +9,8 @@ Exposes the three methods defined in the README's OpenClaw integration spec:
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
-from core.ingestion import ingest
 from core.models import FrictionPoint, Opportunity
 from core.persistence import save_report
 from core.report import SlipReport, generate_report
