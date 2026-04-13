@@ -1,4 +1,4 @@
-"""Tests for SLIP CLI integration (Phase 3 + Phase 5 + Phase 18 + Phase 19 + Phase 23 + Phase 25 + Phase 27 + Phase 32)."""
+"""Tests for SLIP CLI integration (Phase 3 + Phase 5 + Phase 18 + Phase 19 + Phase 23 + Phase 25 + Phase 27 + Phase 32 + Phase 34)."""
 import sys
 import os
 
@@ -546,6 +546,98 @@ def test_cli_file_flag_no_friction(tmp_path, capsys):
 
     captured = capsys.readouterr()
     assert "No friction detected." in captured.out
+
+
+# ---------------------------------------------------------------------------
+# Phase 34: --limit flag tests
+# ---------------------------------------------------------------------------
+
+def test_cli_list_limit_restricts_output(tmp_path, capsys):
+    """--list --limit N must show at most N reports."""
+    import time
+    import core.persistence as _p
+    from core.report import generate_report
+    from core.persistence import save_report
+
+    # Persist 3 reports with unique timestamps
+    for i in range(3):
+        r = generate_report([{"text": f"Report {i} is broken and slow.", "source": "test"}])
+        save_report(r, data_dir=str(tmp_path))
+        time.sleep(1.1)
+
+    with patch("sys.argv", ["cli.main", "--list", "--limit", "2"]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+        except SystemExit as e:
+            assert e.code == 0
+
+    captured = capsys.readouterr()
+    # Header + separator + 2 data rows = 4 lines (plus possible trailing newline)
+    lines = [ln for ln in captured.out.splitlines() if ln.strip()]
+    assert len(lines) == 4  # header, separator, row1, row2
+
+
+def test_cli_list_limit_zero_exits_error(tmp_path, capsys):
+    """--list --limit 0 must exit with code 1."""
+    import core.persistence as _p
+
+    with patch("sys.argv", ["cli.main", "--list", "--limit", "0"]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+            exited_with = 0
+        except SystemExit as e:
+            exited_with = e.code
+    assert exited_with == 1
+
+
+def test_cli_list_limit_large_returns_all(tmp_path, capsys):
+    """--list --limit 999 must return all reports when total < 999."""
+    import time
+    import core.persistence as _p
+    from core.report import generate_report
+    from core.persistence import save_report
+
+    for i in range(2):
+        r = generate_report([{"text": f"Report {i} is awful.", "source": "test"}])
+        save_report(r, data_dir=str(tmp_path))
+        time.sleep(1.1)
+
+    with patch("sys.argv", ["cli.main", "--list", "--limit", "999"]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+        except SystemExit as e:
+            assert e.code == 0
+
+    captured = capsys.readouterr()
+    lines = [ln for ln in captured.out.splitlines() if ln.strip()]
+    assert len(lines) == 4  # header, separator, row1, row2
+
+
+def test_cli_list_no_limit_shows_all(tmp_path, capsys):
+    """--list without --limit must show all persisted reports."""
+    import time
+    import core.persistence as _p
+    from core.report import generate_report
+    from core.persistence import save_report
+
+    for i in range(3):
+        r = generate_report([{"text": f"Report {i} is slow.", "source": "test"}])
+        save_report(r, data_dir=str(tmp_path))
+        time.sleep(1.1)
+
+    with patch("sys.argv", ["cli.main", "--list"]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+        except SystemExit as e:
+            assert e.code == 0
+
+    captured = capsys.readouterr()
+    lines = [ln for ln in captured.out.splitlines() if ln.strip()]
+    assert len(lines) == 5  # header, separator, row1, row2, row3
 
 
 if __name__ == "__main__":
