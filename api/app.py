@@ -12,14 +12,14 @@ from collections import Counter
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from core.persistence import clear_reports, delete_report, load_report_by_id, load_reports, save_report
 from core.report import generate_report
 
-_APP_VERSION = "0.30.0"
+_APP_VERSION = "0.33.0"
 
 app = FastAPI(
     title="SLIP API",
@@ -179,9 +179,16 @@ def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
 
 
 @app.get("/reports", response_model=ReportsResponse, tags=["reports"])
-def get_reports() -> ReportsResponse:
-    """Return all persisted SlipReports from the data/ directory, oldest first."""
+def get_reports(
+    limit: Optional[int] = Query(None, ge=1, description="Maximum number of reports to return")
+) -> ReportsResponse:
+    """Return persisted SlipReports from the data/ directory, oldest first.
+
+    Optionally limited by the ``limit`` query parameter.
+    """
     reports = load_reports()
+    if limit is not None:
+        reports = reports[:limit]
     return ReportsResponse(count=len(reports), reports=reports)
 
 

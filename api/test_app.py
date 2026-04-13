@@ -197,6 +197,51 @@ def test_reports_each_entry_has_required_keys():
 
 
 # ---------------------------------------------------------------------------
+# Phase 33: GET /reports limit parameter tests
+# ---------------------------------------------------------------------------
+
+def test_reports_limit_parameter_applied(tmp_path, monkeypatch):
+    """GET /reports?limit=N must return at most N reports (phase 33)."""
+    import time
+    import core.persistence as _p
+    monkeypatch.setattr(_p, "_DEFAULT_DATA_DIR", str(tmp_path))
+
+    # Create 3 reports with unique timestamps
+    for i in range(3):
+        client.post("/analyze", json={"signals": [{"text": f"Report {i}", "source": "test"}]})
+        time.sleep(1.1)  # Ensure unique second-based timestamp
+
+    # Request with limit=2
+    resp = client.get("/reports?limit=2")
+    data = resp.json()
+    assert data["count"] == 2
+    assert len(data["reports"]) == 2
+
+
+def test_reports_limit_parameter_invalid_rejected():
+    """GET /reports?limit=0 must return 422 Unprocessable Entity (phase 33)."""
+    resp = client.get("/reports?limit=0")
+    assert resp.status_code == 422
+
+
+def test_reports_limit_parameter_large_limit_returns_all(tmp_path, monkeypatch):
+    """GET /reports?limit=999 must return all reports if total < 999 (phase 33)."""
+    import time
+    import core.persistence as _p
+    monkeypatch.setattr(_p, "_DEFAULT_DATA_DIR", str(tmp_path))
+
+    # Create 2 reports with unique timestamps
+    for i in range(2):
+        client.post("/analyze", json={"signals": [{"text": f"Report {i}", "source": "test"}]})
+        time.sleep(1.1)
+
+    resp = client.get("/reports?limit=999")
+    data = resp.json()
+    assert data["count"] == 2
+    assert len(data["reports"]) == 2
+
+
+# ---------------------------------------------------------------------------
 # /reports/{report_id}
 # ---------------------------------------------------------------------------
 
