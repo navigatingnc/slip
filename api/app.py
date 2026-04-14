@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field
 from core.persistence import clear_reports, delete_report, load_report_by_id, load_reports, save_report
 from core.report import generate_report
 
-_APP_VERSION = "0.33.0"
+_APP_VERSION = "0.35.0"
 
 app = FastAPI(
     title="SLIP API",
@@ -75,6 +75,7 @@ class AnalyzeResponse(BaseModel):
 
 class ReportsResponse(BaseModel):
     count: int
+    total_count: int
     reports: List[Dict[str, Any]]
 
 
@@ -186,10 +187,10 @@ def get_reports(
 
     Optionally limited by the ``limit`` query parameter.
     """
-    reports = load_reports()
-    if limit is not None:
-        reports = reports[:limit]
-    return ReportsResponse(count=len(reports), reports=reports)
+    all_reports = load_reports()
+    total = len(all_reports)
+    reports = all_reports[:limit] if limit is not None else all_reports
+    return ReportsResponse(count=len(reports), total_count=total, reports=reports)
 
 
 @app.get("/reports/{report_id}", tags=["reports"])

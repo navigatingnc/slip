@@ -164,6 +164,7 @@ def test_reports_response_keys():
     resp = client.get("/reports")
     data = resp.json()
     assert "count" in data
+    assert "total_count" in data
     assert "reports" in data
 
 
@@ -200,6 +201,8 @@ def test_reports_each_entry_has_required_keys():
 # Phase 33: GET /reports limit parameter tests
 # ---------------------------------------------------------------------------
 
+# Phase 35: total_count tests are interleaved below
+
 def test_reports_limit_parameter_applied(tmp_path, monkeypatch):
     """GET /reports?limit=N must return at most N reports (phase 33)."""
     import time
@@ -216,6 +219,8 @@ def test_reports_limit_parameter_applied(tmp_path, monkeypatch):
     data = resp.json()
     assert data["count"] == 2
     assert len(data["reports"]) == 2
+    # Phase 35: total_count must reflect the full unfiltered count
+    assert data["total_count"] == 3
 
 
 def test_reports_limit_parameter_invalid_rejected():
@@ -239,6 +244,43 @@ def test_reports_limit_parameter_large_limit_returns_all(tmp_path, monkeypatch):
     data = resp.json()
     assert data["count"] == 2
     assert len(data["reports"]) == 2
+    # Phase 35: total_count == count when limit >= total
+    assert data["total_count"] == 2
+
+
+# ---------------------------------------------------------------------------
+# Phase 35: total_count field in GET /reports
+# ---------------------------------------------------------------------------
+
+def test_reports_total_count_equals_count_without_limit(tmp_path, monkeypatch):
+    """total_count must equal count when no limit is applied (phase 35)."""
+    import time
+    import core.persistence as _p
+    monkeypatch.setattr(_p, "_DEFAULT_DATA_DIR", str(tmp_path))
+
+    for i in range(2):
+        client.post("/analyze", json={"signals": [{"text": f"Report {i} is slow.", "source": "test"}]})
+        time.sleep(1.1)
+
+    resp = client.get("/reports")
+    data = resp.json()
+    assert data["total_count"] == data["count"] == 2
+
+
+def test_reports_total_count_exceeds_count_with_limit(tmp_path, monkeypatch):
+    """total_count must exceed count when limit < total (phase 35)."""
+    import time
+    import core.persistence as _p
+    monkeypatch.setattr(_p, "_DEFAULT_DATA_DIR", str(tmp_path))
+
+    for i in range(4):
+        client.post("/analyze", json={"signals": [{"text": f"Report {i} is broken.", "source": "test"}]})
+        time.sleep(1.1)
+
+    resp = client.get("/reports?limit=2")
+    data = resp.json()
+    assert data["count"] == 2
+    assert data["total_count"] == 4
 
 
 # ---------------------------------------------------------------------------
