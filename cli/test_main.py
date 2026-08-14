@@ -640,6 +640,93 @@ def test_cli_list_no_limit_shows_all(tmp_path, capsys):
     assert len(lines) == 5  # header, separator, row1, row2, row3
 
 
+# ---------------------------------------------------------------------------
+# Phase 37: --offset flag tests
+# ---------------------------------------------------------------------------
+
+def _seed_list_reports(data_dir, count):
+    """Write deterministic reports for CLI pagination tests."""
+    import json
+
+    for index in range(count):
+        report = {
+            "generated_at": f"2026-05-01T00:00:0{index}Z",
+            "signal_count": index + 1,
+            "top_opportunity": f"Opportunity {index}",
+        }
+        (data_dir / f"report_20260501T00000{index}Z.json").write_text(
+            json.dumps(report), encoding="utf-8"
+        )
+
+
+def test_cli_list_offset_skips_oldest_reports(tmp_path, capsys):
+    """--list --offset N must skip N oldest saved reports."""
+    import core.persistence as _p
+
+    _seed_list_reports(tmp_path, 3)
+    with patch("sys.argv", ["cli.main", "--list", "--offset", "1"]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+        except SystemExit as e:
+            assert e.code == 0
+
+    output = capsys.readouterr().out
+    assert "Opportunity 0" not in output
+    assert "Opportunity 1" in output
+    assert "Opportunity 2" in output
+
+
+def test_cli_list_offset_applies_before_limit(tmp_path, capsys):
+    """--offset must select reports before --limit caps the result set."""
+    import core.persistence as _p
+
+    _seed_list_reports(tmp_path, 4)
+    with patch("sys.argv", ["cli.main", "--list", "--offset", "1", "--limit", "2"]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+        except SystemExit as e:
+            assert e.code == 0
+
+    output = capsys.readouterr().out
+    assert "Opportunity 0" not in output
+    assert "Opportunity 1" in output
+    assert "Opportunity 2" in output
+    assert "Opportunity 3" not in output
+
+
+def test_cli_list_offset_past_end_prints_empty_message(tmp_path, capsys):
+    """An offset beyond the saved-report count must yield an empty list."""
+    import core.persistence as _p
+
+    _seed_list_reports(tmp_path, 2)
+    with patch("sys.argv", ["cli.main", "--list", "--offset", "99"]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+        except SystemExit as e:
+            assert e.code == 0
+
+    assert "No saved reports found." in capsys.readouterr().out
+
+
+def test_cli_list_offset_negative_exits_error(tmp_path, capsys):
+    """--list --offset -1 must exit with code 1 and explain the constraint."""
+    import core.persistence as _p
+
+    with patch("sys.argv", ["cli.main", "--list", "--offset", "-1"]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+            exited_with = 0
+        except SystemExit as e:
+            exited_with = e.code
+
+    assert exited_with == 1
+    assert "--offset must be >= 0" in capsys.readouterr().err
+
+
 if __name__ == "__main__":
     test_cli_detects_friction()
     test_cli_no_friction()
