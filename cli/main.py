@@ -12,6 +12,7 @@ Phase 29: --version flag to print the version string and exit; bump _APP_VERSION
 Phase 32: --file flag for batch signal ingestion from a JSON file.
 Phase 34: --limit flag to restrict the number of reports shown by --list.
 Phase 37: --offset flag to skip reports before applying --limit to --list.
+Phase 38: pagination context after --list results, including total saved reports.
 """
 import argparse
 import csv
@@ -22,7 +23,7 @@ from datetime import datetime, timezone
 
 from core import detect, score
 
-_APP_VERSION = "0.37.0"
+_APP_VERSION = "0.38.0"
 
 
 def _print_friction(results):
@@ -56,10 +57,16 @@ def _print_opportunities(opportunities):
         print()
 
 
-def _print_report_list(reports):
-    """Print a formatted summary table of persisted SlipReports."""
+def _print_report_list(reports, total_count, offset):
+    """Print persisted SlipReports with pagination context."""
     if not reports:
-        print("No saved reports found.")
+        if total_count:
+            print(
+                f"No saved reports found at offset {offset} "
+                f"({total_count} saved report(s) total)."
+            )
+        else:
+            print("No saved reports found.")
         return
     print(f"{'ID/Timestamp':<22}  {'Signals':>7}  Top Opportunity")
     print("-" * 70)
@@ -68,6 +75,10 @@ def _print_report_list(reports):
         signal_count = r.get("signal_count", 0)
         top_opp = r.get("top_opportunity", "\u2014")
         print(f"  {report_id:<20}  {signal_count:>7}  {top_opp}")
+    print(
+        f"\nShowing {len(reports)} of {total_count} saved report(s) "
+        f"(offset {offset})."
+    )
 
 
 def _print_aggregate_summary(reports):
@@ -273,10 +284,12 @@ def main():
             print("Error: --offset must be >= 0.", file=sys.stderr)
             sys.exit(1)
         from core.persistence import load_reports
-        reports = load_reports()[args.offset:]
+        all_reports = load_reports()
+        total_count = len(all_reports)
+        reports = all_reports[args.offset:]
         if args.limit is not None:
             reports = reports[:args.limit]
-        _print_report_list(reports)
+        _print_report_list(reports, total_count, args.offset)
         sys.exit(0)
 
     # --clear bypasses analysis entirely
