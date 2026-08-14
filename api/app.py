@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field
 from core.persistence import clear_reports, delete_report, load_report_by_id, load_reports, save_report
 from core.report import generate_report
 
-_APP_VERSION = "0.35.0"
+_APP_VERSION = "0.36.0"
 
 app = FastAPI(
     title="SLIP API",
@@ -181,15 +181,19 @@ def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
 
 @app.get("/reports", response_model=ReportsResponse, tags=["reports"])
 def get_reports(
-    limit: Optional[int] = Query(None, ge=1, description="Maximum number of reports to return")
+    limit: Optional[int] = Query(None, ge=1, description="Maximum number of reports to return"),
+    offset: int = Query(0, ge=0, description="Number of reports to skip"),
 ) -> ReportsResponse:
     """Return persisted SlipReports from the data/ directory, oldest first.
 
-    Optionally limited by the ``limit`` query parameter.
+    Supports offset pagination; ``offset`` is applied before an optional
+    ``limit``. ``total_count`` always reflects the unpaginated collection.
     """
     all_reports = load_reports()
     total = len(all_reports)
-    reports = all_reports[:limit] if limit is not None else all_reports
+    reports = all_reports[offset:]
+    if limit is not None:
+        reports = reports[:limit]
     return ReportsResponse(count=len(reports), total_count=total, reports=reports)
 
 
