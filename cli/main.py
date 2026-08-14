@@ -11,6 +11,7 @@ Phase 27: --health flag to print operational metadata (version, report count, ti
 Phase 29: --version flag to print the version string and exit; bump _APP_VERSION to 0.29.0.
 Phase 32: --file flag for batch signal ingestion from a JSON file.
 Phase 34: --limit flag to restrict the number of reports shown by --list.
+Phase 37: --offset flag to skip reports before applying --limit to --list.
 """
 import argparse
 import csv
@@ -21,7 +22,7 @@ from datetime import datetime, timezone
 
 from core import detect, score
 
-_APP_VERSION = "0.34.0"
+_APP_VERSION = "0.37.0"
 
 
 def _print_friction(results):
@@ -237,6 +238,13 @@ def main():
         metavar="N",
         help="Limit the number of reports shown by --list (must be >= 1)",
     )
+    parser.add_argument(
+        "--offset",
+        type=int,
+        default=0,
+        metavar="N",
+        help="Skip N oldest reports before applying --limit to --list (must be >= 0)",
+    )
     args = parser.parse_args()
 
     # --version bypasses analysis entirely
@@ -261,8 +269,11 @@ def main():
         if args.limit is not None and args.limit < 1:
             print("Error: --limit must be >= 1.", file=sys.stderr)
             sys.exit(1)
+        if args.offset < 0:
+            print("Error: --offset must be >= 0.", file=sys.stderr)
+            sys.exit(1)
         from core.persistence import load_reports
-        reports = load_reports()
+        reports = load_reports()[args.offset:]
         if args.limit is not None:
             reports = reports[:args.limit]
         _print_report_list(reports)
