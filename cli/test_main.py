@@ -575,7 +575,7 @@ def test_cli_list_limit_restricts_output(tmp_path, capsys):
     captured = capsys.readouterr()
     # Header + separator + 2 data rows = 4 lines (plus possible trailing newline)
     lines = [ln for ln in captured.out.splitlines() if ln.strip()]
-    assert len(lines) == 4  # header, separator, row1, row2
+    assert len(lines) == 5  # header, separator, row1, row2, pagination summary
 
 
 def test_cli_list_limit_zero_exits_error(tmp_path, capsys):
@@ -613,7 +613,7 @@ def test_cli_list_limit_large_returns_all(tmp_path, capsys):
 
     captured = capsys.readouterr()
     lines = [ln for ln in captured.out.splitlines() if ln.strip()]
-    assert len(lines) == 4  # header, separator, row1, row2
+    assert len(lines) == 5  # header, separator, row1, row2, pagination summary
 
 
 def test_cli_list_no_limit_shows_all(tmp_path, capsys):
@@ -637,7 +637,7 @@ def test_cli_list_no_limit_shows_all(tmp_path, capsys):
 
     captured = capsys.readouterr()
     lines = [ln for ln in captured.out.splitlines() if ln.strip()]
-    assert len(lines) == 5  # header, separator, row1, row2, row3
+    assert len(lines) == 6  # header, separator, row1, row2, row3, pagination summary
 
 
 # ---------------------------------------------------------------------------
@@ -696,8 +696,8 @@ def test_cli_list_offset_applies_before_limit(tmp_path, capsys):
     assert "Opportunity 3" not in output
 
 
-def test_cli_list_offset_past_end_prints_empty_message(tmp_path, capsys):
-    """An offset beyond the saved-report count must yield an empty list."""
+def test_cli_list_offset_past_end_prints_total_context(tmp_path, capsys):
+    """A past-end offset must distinguish an empty page from an empty history."""
     import core.persistence as _p
 
     _seed_list_reports(tmp_path, 2)
@@ -708,7 +708,7 @@ def test_cli_list_offset_past_end_prints_empty_message(tmp_path, capsys):
         except SystemExit as e:
             assert e.code == 0
 
-    assert "No saved reports found." in capsys.readouterr().out
+    assert "No saved reports found at offset 99 (2 saved report(s) total)." in capsys.readouterr().out
 
 
 def test_cli_list_offset_negative_exits_error(tmp_path, capsys):
@@ -725,6 +725,25 @@ def test_cli_list_offset_negative_exits_error(tmp_path, capsys):
 
     assert exited_with == 1
     assert "--offset must be >= 0" in capsys.readouterr().err
+
+
+# ---------------------------------------------------------------------------
+# Phase 38: CLI list pagination context tests
+# ---------------------------------------------------------------------------
+
+def test_cli_list_pagination_summary_shows_page_and_total(tmp_path, capsys):
+    """--list must show selected page size, total count, and offset."""
+    import core.persistence as _p
+
+    _seed_list_reports(tmp_path, 4)
+    with patch("sys.argv", ["cli.main", "--list", "--offset", "1", "--limit", "2"]), \
+         patch.object(_p, "_DEFAULT_DATA_DIR", str(tmp_path)):
+        try:
+            main()
+        except SystemExit as e:
+            assert e.code == 0
+
+    assert "Showing 2 of 4 saved report(s) (offset 1)." in capsys.readouterr().out
 
 
 if __name__ == "__main__":
